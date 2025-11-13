@@ -1,0 +1,1169 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>克隆化学品 - 库存管理系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #f5f7fb;
+            color: #4a5568;
+            padding-bottom: 40px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        
+        .form-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-bg);
+        }
+        
+        .section-title i {
+            font-size: 1.2rem;
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: #495057;
+        }
+        
+        .required-label::after {
+            content: "*";
+            color: var(--danger-color);
+            margin-left: 3px;
+        }
+        
+        .file-preview-container {
+            background-color: var(--light-bg);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px dashed var(--border-color);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+        
+        .btn-action {
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+        
+        .btn-download {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-download:hover {
+            background-color: #0b5ed7;
+        }
+        
+        .btn-remove {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-remove:hover {
+            background-color: #e9ecef;
+        }
+        
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .btn-save {
+            background-color: var(--primary-color);
+            padding: 8px 20px;
+            min-width: 120px;
+            color: white;
+        }
+        
+        .btn-save:hover {
+            background-color: #0b5ed7;
+        }
+        
+        .btn-save-new {
+            background-color: var(--success-color);
+            padding: 8px 20px;
+            min-width: 150px;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            padding: 8px 20px;
+            min-width: 100px;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #e9ecef;
+        }
+        
+        .form-note {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+        
+        .status-normal { background-color: var(--success-color); }
+        .status-pending { background-color: var(--warning-color); }
+        .status-expired { background-color: var(--danger-color); }
+        
+        .expiration-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid var(--warning-color);
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+        
+        .signature-container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        .signature-pad {
+            border: 1px dashed #ccc;
+            background-color: white;
+            cursor: crosshair;
+            width: 100%;
+            height: 200px;
+        }
+        
+        .signature-actions {
+            margin-top: 10px;
+        }
+        
+        .signature-preview {
+            max-width: 100%;
+            max-height: 150px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: red;
+        }
+        
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .card-header {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            .form-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn-save, .btn-save-new, .btn-cancel {
+                width: 100%;
+            }
+            
+            .signature-pad {
+                height: 150px;
+            }
+        }
+        
+        .signature-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e9ecef;
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #6c757d;
+        }
+        
+        .step.active .step-number {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .step-label {
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        
+        .clone-info {
+            background-color: #e7f3ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题和操作区域 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                <i class="bi bi-copy me-2"></i>克隆化学品信息
+            </h2>
+            <div>
+                <span class="badge bg-info">原记录ID: {{ chemical.id }}</span>
+            </div>
+        </div>
+        
+        <!-- 克隆信息提示 -->
+        <div class="clone-info">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                <div>
+                    <h5 class="mb-1">克隆操作说明</h5>
+                    <p class="mb-0">您正在克隆化学品 "<strong>{{ chemical.name }}</strong>" (商品代码: {{ chemical.product_code }})。此操作将创建一个新记录，原记录保持不变。</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 状态指示器 -->
+        <div class="alert alert-light mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="me-3">原记录状态: 
+                        <span class="badge bg-{{ 'success' if chemical.status == '正常' else 'warning' if chemical.status == '待检' else 'danger' }}">
+                            {{ chemical.status }}
+                        </span>
+                    </span>
+                    
+                    {% if chemical.expiration_date %}
+                    <span class="me-3">剩余天数: 
+                        <span class="badge bg-{{ 'success' if chemical.days_remaining > 30 else 'warning' if chemical.days_remaining > 0 else 'danger' }}">
+                            {{ chemical.days_remaining }}天
+                        </span>
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="text-muted">
+                    原记录创建: {{ chemical.operation_date.strftime('%Y-%m-%d %H:%M') if chemical.operation_date else '未知' }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Flash消息显示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+                        <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'exclamation-circle' }}-fill me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- 导航返回按钮 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> 返回列表
+            </a>
+            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#signatureHelpModal">
+                <i class="fas fa-question-circle me-1"></i> 签名帮助
+            </button>
+        </div>
+
+        <!-- 签名帮助模态框 -->
+        <div class="modal fade" id="signatureHelpModal" tabindex="-1" aria-labelledby="signatureHelpModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="signatureHelpModalLabel">签名操作指南</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>签名操作步骤：</strong></p>
+                        <ol>
+                            <li>使用鼠标或触摸屏在签名区域绘制您的签名</li>
+                            <li>点击"确认签名"按钮保存签名</li>
+                            <li>如果需要重新签名，点击"清除签名"按钮</li>
+                            <li>签名确认后，方可提交表单</li>
+                        </ol>
+                        <p class="text-danger"><i class="fas fa-exclamation-circle me-1"></i> 注意：签名是操作确认的必要步骤，无有效签名将无法提交修改。</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 签名流程指示器 -->
+        <div class="signature-flow">
+            <div class="step-indicator">
+                <div class="step active">
+                    <div class="step-number">1</div>
+                    <div class="step-label">填写信息</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-label">操作员签名</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-label">确认签名</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-label">保存克隆</div>
+                </div>
+            </div>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                请先完成表单填写，然后进行签名确认，最后保存克隆记录。
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate id="cloneChemicalForm">
+            <input type="hidden" name="current_date" value="{{ datetime.now().strftime('%Y-%m-%d') }}">
+            <input type="hidden" name="id" value="{{ chemical.id }}">
+            
+            <!-- ================== 基本信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-info-circle"></i>
+                    <h4 class="mb-0">基本信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">商品代码</label>
+                        <input type="text" class="form-control" name="product_code" value="{{ chemical.product_code }}" required>
+                        <div class="invalid-feedback">请输入有效商品代码</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">化学品名称</label>
+                        <input type="text" class="form-control" name="name" value="{{ chemical.name }}" required>
+                        <div class="invalid-feedback">请输入名称</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">型号</label>
+                        <input type="text" class="form-control" name="model" value="{{ chemical.model or '' }}" required>
+                        <div class="invalid-feedback">请输入规格</div>
+                    </div>
+    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">商品规格</label>
+                        <input type="text" class="form-control" name="specification" value="{{ chemical.specification or '' }}" required>
+                        <div class="invalid-feedback">请输入规格</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                         <label class="form-label required-label">分类</label>
+                        <select class="form-select" name="category" required>
+                            <option value="">请选择...</option>
+                            <option value="化学纯" {{ 'selected' if chemical.category == '化学纯' else '' }}>化学纯</option>
+                            <option value="分析纯" {{ 'selected' if chemical.category == '分析纯' else '' }}>分析纯</option>
+                            <option value="色谱纯" {{ 'selected' if chemical.category == '色谱纯' else '' }}>色谱纯</option>
+                            <option value="标准溶液" {{ 'selected' if chemical.category == '标准溶液' else '' }}>标准溶液</option>
+                            <option value="其他" {{ 'selected' if chemical.category and chemical.category not in ['化学纯', '分析纯', '色谱纯', '标准溶液'] else '' }}>其他</option>
+                        </select>
+                        <div class="invalid-feedback">请选择分类</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">耗材类别</label>
+                        <select class="form-select" name="consumable_category">
+                            <option value="">未分类</option>
+                            <option value="试药" {{ 'selected' if chemical.consumable_category == '试药' else '' }}>试药</option>
+                            <option value="滴定液" {{ 'selected' if chemical.consumable_category == '滴定液' else '' }}>滴定液</option>
+                            <option value="缓冲液" {{ 'selected' if chemical.consumable_category == '缓冲液' else '' }}>缓冲液</option>
+                            <option value="试液" {{ 'selected' if chemical.consumable_category == '试液' else '' }}>试液</option>
+                            <option value="对照品" {{ 'selected' if chemical.consumable_category == '对照品' else '' }}>对照品</option>
+                            <option value="其他" {{ 'selected' if chemical.consumable_category and chemical.consumable_category not in ['试药', '滴定液', '缓冲液', '试液', '对照品'] else '' }}>其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">浓度</label>
+                        <input type="number" step="0.01" class="form-control" name="concentration" value="{{ chemical.concentration or '' }}">
+                        <div class="invalid-feedback">请输入有效浓度</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">单位</label>
+                        <select class="form-select" name="unit">
+                            <option value="">未指定</option>
+                            <option value="N" {{ 'selected' if chemical.unit == 'N' else '' }}>N</option>
+                            <option value="M" {{ 'selected' if chemical.unit == 'M' else '' }}>M</option>
+                            <option value="mol/L" {{ 'selected' if chemical.unit == 'mol/L' else '' }}>mol/L</option>
+                            <option value="mg/ml" {{ 'selected' if chemical.unit == 'mg/ml' else '' }}>mg/ml</option>
+                            <option value="%" {{ 'selected' if chemical.unit == '%' else '' }}>%</option>
+                            <option value="g/L" {{ 'selected' if chemical.unit == 'g/L' else '' }}>g/L</option>
+                            <option value="（x）" {{ 'selected' if chemical.unit == '（x）' else '' }}>（x）</option>
+                            <option value="（°Bé）" {{ 'selected' if chemical.unit == '（°Bé）' else '' }}>（°Bé）</option>
+                            <option value="（ER）" {{ 'selected' if chemical.unit == '（ER）' else '' }}>（ER）</option>
+                            <option value="μg/L" {{ 'selected' if chemical.unit == 'μg/L' else '' }}>μg/L</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 位置与监管信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-geo-alt"></i>
+                    <h4 class="mb-0">位置与监管信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">仓库位置</label>
+                        <select class="form-select" name="warehouse_location">
+                            <option value=""></option>
+                            <option value="25℃恒温箱" {{ 'selected' if chemical.warehouse_location == '25℃恒温箱' else '' }}>25℃恒温箱</option>
+                            <option value="AL01-01" {{ 'selected' if chemical.warehouse_location == 'AL01-01' else '' }}>AL01-01</option>
+                            <option value="AL01-02" {{ 'selected' if chemical.warehouse_location == 'AL01-02' else '' }}>AL01-02</option>
+                            <option value="AL01-03" {{ 'selected' if chemical.warehouse_location == 'AL01-03' else '' }}>AL01-03</option>
+                            <option value="AL01-04" {{ 'selected' if chemical.warehouse_location == 'AL01-04' else '' }}>AL01-04</option>
+                            <option value="AL01-05" {{ 'selected' if chemical.warehouse_location == 'AL01-05' else '' }}>AL01-05</option>
+                            <option value="AL01-06" {{ 'selected' if chemical.warehouse_location == 'AL01-06' else '' }}>AL01-06</option>
+                            <option value="AL01-07" {{ 'selected' if chemical.warehouse_location == 'AL01-07' else '' }}>AL01-07</option>
+                            <option value="AL01-08" {{ 'selected' if chemical.warehouse_location == 'AL01-08' else '' }}>AL01-08</option>
+                            <option value="AL01-09" {{ 'selected' if chemical.warehouse_location == 'AL01-09' else '' }}>AL01-09</option>
+                            <option value="AL01-10" {{ 'selected' if chemical.warehouse_location == 'AL01-10' else '' }}>AL01-10</option>
+                            <option value="AL01-11" {{ 'selected' if chemical.warehouse_location == 'AL01-11' else '' }}>AL01-11</option>
+                            <option value="AL01-12" {{ 'selected' if chemical.warehouse_location == 'AL01-12' else '' }}>AL01-12</option>
+                            <option value="AL03-01" {{ 'selected' if chemical.warehouse_location == 'AL03-01' else '' }}>AL03-01</option>
+                            <option value="AL03-02" {{ 'selected' if chemical.warehouse_location == 'AL03-02' else '' }}>AL03-02</option>
+                            <option value="AL03-03" {{ 'selected' if chemical.warehouse_location == 'AL03-03' else '' }}>AL03-03</option>
+                            <option value="1号仓 防爆1号柜" {{ 'selected' if chemical.warehouse_location == '1号仓 防爆1号柜' else '' }}>1号仓 防爆1号柜</option>
+                            <option value="1号仓 防爆2号柜" {{ 'selected' if chemical.warehouse_location == '1号仓 防爆2号柜' else '' }}>1号仓 防爆2号柜</option>
+                            <option value="1号仓 防爆3号柜" {{ 'selected' if chemical.warehouse_location == '1号仓 防爆3号柜' else '' }}>1号仓 防爆3号柜</option>
+                            <option value="1号仓 防爆4号柜" {{ 'selected' if chemical.warehouse_location == '1号仓 防爆4号柜' else '' }}>1号仓 防爆4号柜</option>
+                            <option value="1号仓 防爆5号柜" {{ 'selected' if chemical.warehouse_location == '1号仓 防爆5号柜' else '' }}>1号仓 防爆5号柜</option>
+                            <option value="FI-A4" {{ 'selected' if chemical.warehouse_location == 'FI-A4' else '' }}>FI-A4</option>
+                            <option value="标准品盒（1）" {{ 'selected' if chemical.warehouse_location == '标准品盒（1）' else '' }}>标准品盒（1）</option>
+                            <option value="标准品盒（2）" {{ 'selected' if chemical.warehouse_location == '标准品盒（2）' else '' }}>标准品盒（2）</option>
+                            <option value="标准品盒（3）" {{ 'selected' if chemical.warehouse_location == '标准品盒（3）' else '' }}>标准品盒（3）</option>  
+                            <option value="标准品盒（4）" {{ 'selected' if chemical.warehouse_location == '标准品盒（4）' else '' }}>标准品盒（4）</option>
+                            <option value="标准品盒（5）" {{ 'selected' if chemical.warehouse_location == '标准品盒（5）' else '' }}>标准品盒（5）</option>
+                            <option value="标准品盒（6）" {{ 'selected' if chemical.warehouse_location == '标准品盒（6）' else '' }}>标准品盒（6）</option>
+                            <option value="冰箱" {{ 'selected' if chemical.warehouse_location == '冰箱' else '' }}>冰箱</option>
+                            <option value="通风橱" {{ 'selected' if chemical.warehouse_location == '通风橱' else '' }}>通风橱</option>
+                            <option value="易制爆" {{ 'selected' if chemical.warehouse_location == '易制爆' else '' }}>易制爆</option>
+                            <option value="易制毒" {{ 'selected' if chemical.warehouse_location == '易制毒' else '' }}>易制毒</option>
+                            <option value="其他" {{ 'selected' if chemical.warehouse_location and chemical.warehouse_location not in ['25℃恒温箱', 'AL01-01', 'AL01-02', 'AL01-03', 'AL01-04', 'AL01-05', 'AL01-06', 'AL01-07', 'AL01-08', 'AL01-09', 'AL01-10', 'AL01-11', 'AL01-12', 'AL03-01', 'AL03-02', 'AL03-03', '1号仓 防爆1号柜', '1号仓 防爆2号柜', '1号仓 防爆3号柜', '1号仓 防爆4号柜', '1号仓 防爆5号柜', 'FI-A4', '标准品盒（1）', '标准品盒（2）', '标准品盒（3）', '标准品盒（4）', '标准品盒（5）', '标准品盒（6）', '冰箱', '通风橱', '易制爆', '易制毒'] else '' }}>其他</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">CAS编号</label>
+                        <input type="text" class="form-control" name="cas_number" placeholder="例如：7732-18-5" value="{{ chemical.cas_number or '' }}">
+                        <div class="form-note">化学品唯一标识号</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">监管类别</label>
+                        <select class="form-select" name="regulatory_category">
+                            <option value="">未指定</option>
+                            <option value="【X】危险化学品" {{ 'selected' if chemical.regulatory_category == '【X】危险化学品' else '' }}>【X】危险化学品</option>
+                            <option value="【X】易制爆；【X】危险化学品" {{ 'selected' if chemical.regulatory_category == '【X】易制爆；【X】危险化学品' else '' }}>【X】易制爆；【X】危险化学品</option>
+                            <option value="【X】易制毒；【X】危险化学品" {{ 'selected' if chemical.regulatory_category == '【X】易制毒；【X】危险化学品' else '' }}>【X】易制毒；【X】危险化学品</option>
+                            <option value="危险化学品" {{ 'selected' if chemical.regulatory_category == '危险化学品' else '' }}>危险化学品</option>
+                            <option value="易制爆；危险化学品" {{ 'selected' if chemical.regulatory_category == '易制爆；危险化学品' else '' }}>易制爆；危险化学品</option>
+                            <option value="易制毒；危险化学品" {{ 'selected' if chemical.regulatory_category == '易制毒；危险化学品' else '' }}>易制毒；危险化学品</option>
+                            <option value="其他" {{ 'selected' if chemical.regulatory_category and chemical.regulatory_category not in ['【X】危险化学品', '【X】易制爆；【X】危险化学品', '【X】易制毒；【X】危险化学品', '危险化学品', '易制爆；危险化学品', '易制毒；危险化学品'] else '' }}>其他</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 库存信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-boxes"></i>
+                    <h4 class="mb-0">库存信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">操作员</label>
+                        <select class="form-select" name="operator" required>
+                            <option value="">请选择...</option>
+                            <option value="陈敬宏" {{ 'selected' if chemical.operator == '陈敬宏' else '' }}>陈敬宏</option>
+                            <option value="萧冰莹" {{ 'selected' if chemical.operator == '萧冰莹' else '' }}>萧冰莹</option>
+                            <option value="叶汉农" {{ 'selected' if chemical.operator == '叶汉农' else '' }}>叶汉农</option>
+                            <option value="黄凤嫦" {{ 'selected' if chemical.operator == '黄凤嫦' else '' }}>黄凤嫦</option>
+                            <option value="方洧勉" {{ 'selected' if chemical.operator == '方洧勉' else '' }}>方洧勉</option>
+                            <option value="曾爱华" {{ 'selected' if chemical.operator == '曾爱华' else '' }}>曾爱华</option>
+                            <option value="何咏瑜" {{ 'selected' if chemical.operator == '何咏瑜' else '' }}>何咏瑜</option>
+                            <option value="许华文" {{ 'selected' if chemical.operator == '许华文' else '' }}>许华文</option>
+                            <option value="周晓华" {{ 'selected' if chemical.operator == '周晓华' else '' }}>周晓华</option>
+                            <option value="欧阳浩强" {{ 'selected' if chemical.operator == '欧阳浩强' else '' }}>欧阳浩强</option>
+                            <option value="陈建华" {{ 'selected' if chemical.operator == '陈建华' else '' }}>陈建华</option>
+                            <option value="骆锦强" {{ 'selected' if chemical.operator == '骆锦强' else '' }}>骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择操作员</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">确认人</label>
+                        <select class="form-select" name="confirmer" required>
+                            <option value="">请选择...</option>
+                            <option value="陈敬宏" {{ 'selected' if chemical.confirmer == '陈敬宏' else '' }}>陈敬宏</option>
+                            <option value="萧冰莹" {{ 'selected' if chemical.confirmer == '萧冰莹' else '' }}>萧冰莹</option>
+                            <option value="叶汉农" {{ 'selected' if chemical.confirmer == '叶汉农' else '' }}>叶汉农</option>
+                            <option value="黄凤嫦" {{ 'selected' if chemical.confirmer == '黄凤嫦' else '' }}>黄凤嫦</option>
+                            <option value="方洧勉" {{ 'selected' if chemical.confirmer == '方洧勉' else '' }}>方洧勉</option>
+                            <option value="曾爱华" {{ 'selected' if chemical.confirmer == '曾爱华' else '' }}>曾爱华</option>
+                            <option value="何咏瑜" {{ 'selected' if chemical.confirmer == '何咏瑜' else '' }}>何咏瑜</option>
+                            <option value="许华文" {{ 'selected' if chemical.confirmer == '许华文' else '' }}>许华文</option>
+                            <option value="周晓华" {{ 'selected' if chemical.confirmer == '周晓华' else '' }}>周晓华</option>
+                            <option value="欧阳浩强" {{ 'selected' if chemical.confirmer == '欧阳浩强' else '' }}>欧阳浩强</option>
+                            <option value="陈建华" {{ 'selected' if chemical.confirmer == '陈建华' else '' }}>陈建华</option>
+                            <option value="骆锦强" {{ 'selected' if chemical.confirmer == '骆锦强' else '' }}>骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择确认人</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">存放位置</label>
+                        <select class="form-select" name="location" required>
+                            <option value="">请选择...</option>
+                            <option value="1#仓" {{ 'selected' if chemical.location == '1#仓' else '' }}>1#仓</option>
+                            <option value="安全柜" {{ 'selected' if chemical.location == '安全柜' else '' }}>安全柜</option>
+                            <option value="通风橱" {{ 'selected' if chemical.location == '通风橱' else '' }}>通风橱</option>
+                            <option value="易制爆仓库" {{ 'selected' if chemical.location == '易制爆仓库' else '' }}>易制爆仓库</option>
+                            <option value="冰箱" {{ 'selected' if chemical.location == '冰箱' else '' }}>冰箱</option>
+                            <option value="其他" {{ 'selected' if chemical.location and chemical.location not in ['1#仓', '安全柜', '通风橱', '易制爆仓库', '冰箱'] else '' }}>其他</option>
+                        </select>
+                        <div class="invalid-feedback">请选择存放位置</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">操作类型</label>
+                        <select class="form-select" name="action" id="action" required>
+                            <option value="入库" {{ 'selected' if chemical.action == '入库' else '' }}>入库</option>
+                            <option value="出库" {{ 'selected' if chemical.action == '出库' else '' }}>出库</option>
+                            <option value="盘点" {{ 'selected' if chemical.action == '盘点' else '' }}>盘点</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required-label">操作数量</label>
+                        <input type="number" class="form-control" name="quantity" min="0" value="{{ chemical.quantity or 0 }}" required>
+                        <div class="invalid-feedback">请输入有效数量</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required-label">此批总库存</label>
+                        <input type="number" class="form-control" name="batch_total_stock" min="0" value="{{ chemical.batch_total_stock or 0 }}" required>
+                        <div class="invalid-feedback">请输入此批总库存</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required-label">物品状态</label>
+                        <select class="form-select" name="status" required>
+                            <option value="正常" {{ 'selected' if chemical.status == '正常' else '' }}>正常</option>
+                            <option value="待检" {{ 'selected' if chemical.status == '待检' else '' }}>待检</option>
+                            <option value="过期" {{ 'selected' if chemical.status == '过期' else '' }}>过期</option>
+                            <option value="销毁" {{ 'selected' if chemical.status == '销毁' else '' }}>销毁</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">总库存</label>
+                        <input type="number" class="form-control" name="total_stock" min="0" value="{{ chemical.total_stock or 0 }}" required>
+                        <div class="invalid-feedback">请输入总库存</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">安全库存</label>
+                        <input type="number" class="form-control" name="safety_stock" min="0" value="{{ chemical.safety_stock or 0 }}" required>
+                        <div class="invalid-feedback">请输入安全库存</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 生产信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-building"></i>
+                    <h4 class="mb-0">生产信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">生产商</label>
+                        <input type="text" class="form-control" name="manufacturer" value="{{ chemical.manufacturer or '' }}" required>
+                        <div class="invalid-feedback">请输入生产商</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">批次号</label>
+                        <input type="text" class="form-control" name="batch_number" value="{{ chemical.batch_number or '' }}" required>
+                        <div class="invalid-feedback">请输入有效批次号</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">收支日期</label>
+                        <input type="date" class="form-control" name="production_date" value="{{ chemical.production_date.strftime('%Y-%m-%d') if chemical.production_date else '' }}" required>
+                        <div class="invalid-feedback">请选择日期</div>
+                    </div>
+
+<div class="col-md-6">
+                        <label class="form-label required-label">操作日期</label>
+                        <input type="datetime-local" class="form-control" name="operation_date" value="{{ datetime.now().strftime('%Y-%m-%dT%H:%M') }}" required>
+                        <div class="invalid-feedback">请选择操作日期</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">过期日期</label>
+                        <input type="date" class="form-control" name="expiration_date" value="{{ chemical.expiration_date.strftime('%Y-%m-%d') if chemical.expiration_date else '' }}" required>
+                        <div class="invalid-feedback">请选择日期</div>
+                    </div>
+
+                    {% if chemical.expiration_date and chemical.days_remaining <= 30 %}
+                    <div class="col-12">
+                        <div class="expiration-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            该化学品将在 <strong>{{ chemical.days_remaining }}天</strong> 后过期，请及时处理！
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ================== 采购与附件 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-cash-coin"></i>
+                    <h4 class="mb-0">采购与附件</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">单价（元）</label>
+                        <input type="number" class="form-control" name="price" step="0.01" value="{{ chemical.price or 0 }}" required>
+                        <div class="invalid-feedback">请输入有效金额</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">供应商</label>
+                        <input type="text" class="form-control" name="supplier" value="{{ chemical.supplier or '' }}" required>
+                        <div class="invalid-feedback">请输入供应商</div>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label">备注信息</label>
+                        <textarea class="form-control" name="notes" rows="3" maxlength="200" placeholder="最多200字符">{{ chemical.notes or '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 附件管理 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-paperclip"></i>
+                    <h4 class="mb-0">附件管理</h4>
+                </div>
+                
+                <!-- 化学品图片 -->
+                <div class="mb-4">
+                    <label class="form-label">化学品图片</label>
+                    
+                    <!-- 显示当前图片信息 -->
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-image me-2"></i>
+                                <!-- 显示图片名称 -->
+                                <span id="imageFileName">{{ chemical.image or '未上传图片' }}</span>
+                            </div>
+                            <div class="file-actions">
+                                {% if chemical.image %}
+                                <a href="{{ url_for('view_image', id=chemical.id) }}" class="btn btn-sm btn-download" target="_blank">
+                                    <i class="bi bi-eye me-1"></i>查看原图
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-remove" onclick="clearFileInput('image')">
+                                    <i class="bi bi-arrow-repeat me-1"></i>更换
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 图片预览 -->
+                        {% if chemical.image %}
+                        <img src="{{ url_for('view_image', id=chemical.id) }}" class="preview-image" alt="化学品图片预览" style="display: block;">
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 文件选择输入 -->
+                    <input type="file" class="form-control" name="image" id="imageInput" 
+                           accept="image/*" onchange="previewImage(event)">
+                    <div class="upload-hint">
+                        支持格式：PNG, JPG, JPEG, GIF（最大16MB）
+                    </div>
+                </div>
+                
+                <!-- 通用附件 -->
+                <div class="mb-4">
+                    <label class="form-label">通用附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-file-earmark me-2"></i>
+                                <span id="attachmentFileName">{{ chemical.attachment or '未上传附件' }}</span>
+                            </div>
+                            <div class="file-actions">
+                                {% if chemical.attachment %}
+                                <a href="{{ url_for('download_attachment', id=chemical.id, type='attachment') }}" class="btn btn-sm btn-download" target="_blank">
+                                    <i class="bi bi-download me-1"></i>下载原附件
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-remove" onclick="clearFileInput('attachment')">
+                                    <i class="bi bi-arrow-repeat me-1"></i>更换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="attachment" id="attachmentInput" 
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onchange="updateFileName('attachment')">
+                    <div class="upload-hint">
+                        支持文档格式：PDF, DOC, DOCX, XLS, XLSX, 图片
+                    </div>
+                </div>
+                
+                <!-- 送货单附件 -->
+                <div class="mb-4">
+                    <label class="form-label">送货单附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-truck me-2"></i>
+                                <span id="delivery_order_attachmentFileName">{{ chemical.delivery_order_attachment or '未上传附件' }}</span>
+                            </div>
+                            <div class="file-actions">
+                                {% if chemical.delivery_order_attachment %}
+                                <a href="{{ url_for('download_attachment', id=chemical.id, type='delivery_order') }}" class="btn btn-sm btn-download" target="_blank">
+                                    <i class="bi bi-download me-1"></i>下载原附件
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-remove" onclick="clearFileInput('delivery_order_attachment')">
+                                    <i class="bi bi-arrow-repeat me-1"></i>更换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="delivery_order_attachment" id="delivery_order_attachmentInput" 
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onchange="updateFileName('delivery_order_attachment')">
+                    <div class="upload-hint">
+                        支持文档格式：PDF, DOC, DOCX, XLS, XLSX, 图片
+                    </div>
+                </div>
+                
+                <!-- 发票附件 -->
+                <div class="mb-4">
+                    <label class="form-label">发票附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-receipt me-2"></i>
+                                <span id="invoice_attachmentFileName">{{ chemical.invoice_attachment or '未上传附件' }}</span>
+                            </div>
+                            <div class="file-actions">
+                                {% if chemical.invoice_attachment %}
+                                <a href="{{ url_for('download_attachment', id=chemical.id, type='invoice') }}" class="btn btn-sm btn-download" target="_blank">
+                                    <i class="bi bi-download me-1"></i>下载原附件
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-remove" onclick="clearFileInput('invoice_attachment')">
+                                    <i class="bi bi-arrow-repeat me-1"></i>更换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="invoice_attachment" id="invoice_attachmentInput" 
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onchange="updateFileName('invoice_attachment')">
+                    <div class="upload-hint">
+                        支持文档格式：PDF, DOC, DOCX, XLS, XLSX, 图片
+                    </div>
+                </div>
+                
+                <!-- MSDS附件 -->
+                <div class="mb-4">
+                    <label class="form-label">MSDS附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-file-medical me-2"></i>
+                                <span id="msds_attachmentFileName">{{ chemical.msds_attachment or '未上传附件' }}</span>
+                            </div>
+                            <div class="file-actions">
+                                {% if chemical.msds_attachment %}
+                                <a href="{{ url_for('download_attachment', id=chemical.id, type='msds') }}" class="btn btn-sm btn-download" target="_blank">
+                                    <i class="bi bi-download me-1"></i>下载原附件
+                                </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-remove" onclick="clearFileInput('msds_attachment')">
+                                    <i class="bi bi-arrow-repeat me-1"></i>更换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="msds_attachment" id="msds_attachmentInput" 
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" onchange="updateFileName('msds_attachment')">
+                    <div class="upload-hint">
+                        支持文档格式：PDF, DOC, DOCX, XLS, XLSX, 图片
+                    </div>
+                </div>
+            </div>
+
+            <!-- 签名确认区域 -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-signature me-2"></i>操作员签名确认
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>请使用鼠标或触摸屏在下方区域绘制您的签名，确认本次克隆操作。
+                    </div>
+                    
+                    <!-- 显示原记录的签名 -->
+                    {% if chemical.signature_data %}
+                    <div class="previous-signature">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-history me-1"></i>原记录的签名
+                        </h6>
+                        <div class="d-flex align-items-center">
+                            <img src="{{ chemical.signature_data }}" alt="原签名" class="signature-preview" style="display: block; max-width: 300px;">
+                            <div class="ms-3">
+                                <p class="mb-1"><strong>原操作员：</strong>{{ chemical.operator }}</p>
+                                <p class="mb-1"><strong>原确认人：</strong>{{ chemical.confirmer }}</p>
+                                <p class="mb-1"><strong>原操作时间：</strong>{{ chemical.operation_date.strftime('%Y-%m-%d %H:%M') if chemical.operation_date else '未知' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="signature-container">
+                        <div class="mb-3">
+                            <label class="form-label required-field">手写签名</label>
+                            <div id="signature-pad" class="signature-pad">
+                                <canvas id="signatureCanvas" width="600" height="200"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="signature-actions">
+                            <button type="button" id="clear-signature" class="btn btn-outline-secondary">
+                                <i class="fas fa-eraser me-1"></i>清除签名
+                            </button>
+                            <button type="button" id="confirm-signature" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i>确认签名
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <p class="text-muted signature-status" id="signature-status">
+                                <i class="fas fa-times-circle text-danger me-1"></i>未签名
+                            </p>
+                            <img id="signature-preview" class="signature-preview" alt="签名预览">
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="signature_data" id="signature-data">
+                    
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-info-circle me-2"></i>此操作将基于原记录创建一个新的化学品记录，原记录保持不变。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 表单提交按钮 -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">
+                    <i class="fas fa-times me-1"></i> 取消
+                </a>
+                <button type="submit" class="btn btn-primary" id="submit-button" disabled>
+                    <i class="fas fa-copy me-1"></i> 保存克隆记录
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Signature Pad JS -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@3.0.0-beta.3/dist/signature_pad.umd.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化签名板
+            const canvas = document.getElementById("signatureCanvas");
+            const signaturePad = new SignaturePad(canvas);
+            
+            // 调整Canvas大小以适应屏幕
+            function resizeCanvas() {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                canvas.getContext("2d").scale(ratio, ratio);
+                signaturePad.clear(); // 清除画布，避免缩放导致的模糊
+            }
+            
+            // 初始调整大小
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // 清除签名按钮
+            document.getElementById('clear-signature').addEventListener('click', function() {
+                signaturePad.clear();
+                document.getElementById('signature-preview').style.display = 'none';
+                document.getElementById('signature-data').value = '';
+                document.getElementById('signature-status').innerHTML = 
+                    '<i class="fas fa-times-circle text-danger me-1"></i>未签名';
+                document.getElementById('submit-button').disabled = true;
+                updateStepIndicator(2, false);
+            });
+            
+            // 确认签名按钮
+            document.getElementById('confirm-signature').addEventListener('click', function() {
+                if (signaturePad.isEmpty()) {
+                    alert('请先绘制您的签名！');
+                    return;
+                }
+                
+                const dataURL = signaturePad.toDataURL();
+                document.getElementById('signature-data').value = dataURL;
+                document.getElementById('signature-preview').src = dataURL;
+                document.getElementById('signature-preview').style.display = 'block';
+                document.getElementById('signature-status').innerHTML = 
+                    '<i class="fas fa-check-circle text-success me-1"></i>已签名';
+                document.getElementById('submit-button').disabled = false;
+                updateStepIndicator(3, true);
+                
+                // 显示成功提示
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success mt-3';
+                alertDiv.innerHTML = '<i class="fas fa-check me-2"></i>签名已确认，现在可以提交表单。';
+                
+                const signatureContainer = document.querySelector('.signature-container');
+                signatureContainer.appendChild(alertDiv);
+                
+                // 3秒后自动隐藏提示
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 3000);
+            });
+            
+            // 表单提交验证
+            document.getElementById('cloneChemicalForm').addEventListener('submit', function(e) {
+                if (signaturePad.isEmpty() || !document.getElementById('signature-data').value) {
+                    e.preventDefault();
+                    alert('请先完成签名确认再提交表单！');
+                    // 滚动到签名区域
+                    document.querySelector('.signature-container').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                } else {
+                    updateStepIndicator(4, true);
+                }
+            });
+            
+            // 更新步骤指示器
+            function updateStepIndicator(stepNumber, isCompleted) {
+                const steps = document.querySelectorAll('.step');
+                
+                // 重置所有步骤
+                steps.forEach(step => {
+                    step.classList.remove('active', 'completed');
+                });
+                
+                // 设置当前步骤和已完成步骤
+                for (let i = 0; i < steps.length; i++) {
+                    if (i < stepNumber - 1) {
+                        steps[i].classList.add('completed');
+                    } else if (i === stepNumber - 1) {
+                        steps[i].classList.add('active');
+                        if (isCompleted) {
+                            steps[i].classList.add('completed');
+                        }
+                    }
+                }
+            }
+            
+            // 初始步骤指示器状态
+            updateStepIndicator(1, true);
+        });
+
+        // 文件处理函数
+        function previewImage(event) {
+            const input = event.target;
+            const fileNameSpan = document.getElementById('imageFileName');
+            
+            if (input.files && input.files[0]) {
+                fileNameSpan.textContent = input.files[0].name;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // 如果有预览区域，显示图片
+                    const preview = document.querySelector('.preview-image');
+                    if (preview) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                fileNameSpan.textContent = '未选择文件';
+            }
+        }
+        
+        function updateFileName(type) {
+            const input = document.getElementById(type + 'Input');
+            const fileNameSpan = document.getElementById(type + 'FileName');
+            
+            if (input.files && input.files[0]) {
+                fileNameSpan.textContent = input.files[0].name;
+            } else {
+                fileNameSpan.textContent = '未选择文件';
+            }
+        }
+        
+        function clearFileInput(type) {
+            const input = document.getElementById(type + 'Input');
+            input.value = '';
+            const fileNameSpan = document.getElementById(type + 'FileName');
+            fileNameSpan.textContent = '未选择文件';
+            
+            // 如果是图片，清除预览
+            if (type === 'image') {
+                const preview = document.querySelector('.preview-image');
+                if (preview) {
+                    preview.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

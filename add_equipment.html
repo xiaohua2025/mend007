@@ -1,0 +1,288 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加仪器设备</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        .form-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .form-label {
+            margin-bottom: 0.3rem;
+            font-size: 0.875rem;
+        }
+        .required-label::after {
+            content: "*";
+            color: red;
+            margin-left: 3px;
+        }
+    </style>
+</head>
+<body class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">添加仪器设备</h2>
+        <a href="{{ url_for('equipment_list') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+        <div class="form-section">
+            <h4 class="mb-3">基本信息</h4>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label required-label">固定资产编号</label>
+                    <input type="text" class="form-control" name="fixed_asset_number" required>
+                    <div class="invalid-feedback">请输入固定资产编号</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">设备管理编号</label>
+                    <input type="text" class="form-control" name="equipment_management_number">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">仪器自编号码</label>
+                    <input type="text" class="form-control" name="equipment_self_number">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="requires_3q_certification" id="requires3Q">
+                        <label class="form-check-label" for="requires3Q">需3Q认证设备</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label required-label">仪器名称</label>
+                    <input type="text" class="form-control" name="equipment_name" required>
+                    <div class="invalid-feedback">请输入仪器名称</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">仪器型号</label>
+                    <input type="text" class="form-control" name="equipment_model">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">实验室</label>
+                    <input type="text" class="form-control" name="laboratory">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">位置</label>
+                    <input type="text" class="form-control" name="location">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">仪器用途</label>
+                <textarea class="form-control" name="purpose" rows="2"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4 class="mb-3">状态信息</h4>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">仪器使用状态</label>
+                    <select class="form-select" name="usage_status">
+                        <option value="">请选择</option>
+                        <option value="在用">在用</option>
+                        <option value="停用">停用</option>
+                        <option value="维修中">维修中</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">仪器状态</label>
+                    <select class="form-select" name="status">
+                        <option value="">请选择</option>
+                        <option value="正常">正常</option>
+                        <option value="维修中">维修中</option>
+                        <option value="报废">报废</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">采购日期</label>
+                    <input type="date" class="form-control" name="purchase_date">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">采购金额</label>
+                    <input type="number" step="0.01" class="form-control" name="purchase_amount">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">减值剩余金额</label>
+                <input type="number" step="0.01" class="form-control" name="depreciated_amount">
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">备注</label>
+                <textarea class="form-control" name="notes" rows="3"></textarea>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4 class="mb-3">故障信息</h4>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">故障发生日期</label>
+                    <input type="date" class="form-control" name="fault_date">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">故障分类</label>
+                    <select class="form-select" name="fault_category">
+                        <option value="">请选择</option>
+                        <option value="机械故障">机械故障</option>
+                        <option value="电气故障">电气故障</option>
+                        <option value="软件故障">软件故障</option>
+                        <option value="人为损坏">人为损坏</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">处理方式</label>
+                    <select class="form-select" name="handling_method">
+                        <option value="">请选择</option>
+                        <option value="自行维修">自行维修</option>
+                        <option value="厂家维修">厂家维修</option>
+                        <option value="第三方维修">第三方维修</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">处理完成日期</label>
+                    <input type="date" class="form-control" name="completion_date">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">处理方案</label>
+                <textarea class="form-control" name="solution" rows="2"></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">处理完成结果</label>
+                <textarea class="form-control" name="result" rows="2"></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">操作人</label>
+                    <input type="text" class="form-control" name="operator">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">确认人</label>
+                    <input type="text" class="form-control" name="confirmer">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h4 class="mb-3">附件信息</h4>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">仪器图片</label>
+                    <input type="file" class="form-control" name="equipment_image" accept="image/*">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">固定资编号图片</label>
+                    <input type="file" class="form-control" name="fixed_asset_image" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">位置图片</label>
+                    <input type="file" class="form-control" name="location_image" accept="image/*">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">发票附件</label>
+                    <input type="file" class="form-control" name="invoice_attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">维修单附件</label>
+                    <input type="file" class="form-control" name="maintenance_attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">送货单附件</label>
+                    <input type="file" class="form-control" name="delivery_order_attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">年检附件</label>
+                    <input type="file" class="form-control" name="annual_inspection_attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">其他附件</label>
+                    <input type="file" class="form-control" name="other_attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <button type="submit" class="btn btn-primary px-4">提交信息</button>
+            <button type="reset" class="btn btn-outline-secondary">重置表单</button>
+        </div>
+    </form>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 表单验证
+        (function () {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+    </script>
+</body>
+</html>

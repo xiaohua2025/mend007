@@ -1,0 +1,740 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级查询 - 化学品管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* 保持您原有的CSS样式不变 */
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #f0f4f8;
+            color: #343a40;
+        }
+        
+        .container {
+            max-width: 1400px;
+        }
+        
+        .header-container {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .filter-card {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .table-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        
+        .table-responsive {
+            max-height: 70vh;
+            border-radius: 8px;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+        }
+        
+        #chemicalTable {
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        
+        #chemicalTable thead th {
+            background-color: #f1f5ff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            color: var(--primary-color);
+            vertical-align: middle;
+        }
+        
+        #chemicalTable tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05) !important;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        
+        .status-expiring { background-color: #ffc107; }
+        .status-low { background-color: #dc3545; }
+        
+        .collapse-toggle::after { transition: transform 0.2s; }
+        .collapse-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+        
+        .action-buttons {
+            min-width: 150px;
+        }
+        
+        .badge-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .search-btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .search-btn-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .no-results {
+            background-color: white;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .filter-section {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .search-btn-group .btn {
+                min-width: 100%;
+            }
+            
+            .table-responsive {
+                max-height: 60vh;
+            }
+            
+            .header-container h2 {
+                font-size: 1.5rem;
+            }
+        }
+        
+        .date-range-label {
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .sortable-header {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sortable-header:hover {
+            color: var(--secondary-color);
+        }
+        
+        .sort-indicator {
+            font-size: 0.9rem;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body class="container mt-4 mb-5">
+    <div class="header-container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="bi bi-search me-2"></i>化学品高级查询</h2>
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-light">
+                    <i class="bi bi-house-door me-1"></i> 返回首页
+                </a>
+            </div>
+        </div>
+        <div class="mt-2 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-calendar-check me-2"></i>
+                <span id="currentDate"></span>
+            </div>
+            <a href="{{ url_for('compare_years') }}" class="btn btn-outline-light">
+                <i class="bi bi-calculator me-1"></i> 化学品年度运营对比分析
+            </a>
+        </div>
+    </div>
+
+    <!-- 搜索表单 -->
+    <div class="filter-card">
+        <form method="POST" action="{{ url_for('search') }}">
+            <div class="row g-3">
+                <!-- 第一行：基本搜索 -->
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">商品代码</label>
+                    <input type="text" class="form-control" name="product_code" 
+                           value="{{ request.form.product_code }}" placeholder="输入商品代码">
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">化学品名称</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="name" 
+                               value="{{ request.form.name }}" placeholder="输入化学品名称">
+                        <span class="input-group-text" data-bs-toggle="tooltip" 
+                              title="支持模糊查询，例如输入'酸'可匹配'硫酸'、'盐酸'等">
+                            <i class="bi bi-info-circle"></i>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">CAS编号</label>
+                    <input type="text" class="form-control" name="cas_number" 
+                           value="{{ request.form.cas_number }}" placeholder="输入CAS编号">
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">匹配模式</label>
+                    <select class="form-select" name="search_mode">
+                        <option value="exact" {% if request.form.search_mode == 'exact' %}selected{% endif %}>精确匹配</option>
+                        <option value="fuzzy" {% if request.form.search_mode == 'fuzzy' %}selected{% endif %}>模糊匹配</option>
+                    </select>
+                </div>
+
+                <!-- 更多搜索条件 -->
+                <div class="col-12 mt-2">
+                    <button class="btn btn-outline-primary p-0 collapse-toggle" type="button" 
+                            data-bs-toggle="collapse" data-bs-target="#moreFilters"
+                            aria-expanded="{{ 'true' if show_more_filters else 'false' }}">
+                        <i class="bi bi-chevron-down me-1"></i> 
+                        <span>{{ '隐藏' if show_more_filters else '显示' }}更多搜索条件</span>
+                    </button>
+                    <div class="collapse {% if show_more_filters %}show{% endif %} mt-3" id="moreFilters">
+                        <div class="filter-section">
+                            <h5 class="mb-3 text-primary"><i class="bi bi-funnel me-2"></i>分类与位置</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">类别</label>
+                                    <select class="form-select" name="category">
+                                        <option value="">所有分类</option>
+                                        <option value="化学纯" {% if request.form.category == '化学纯' %}selected{% endif %}>化学纯</option>
+                                        <option value="分析纯" {% if request.form.category == '分析纯' %}selected{% endif %}>分析纯</option>
+                                        <option value="色谱纯" {% if request.form.category == '色谱纯' %}selected{% endif %}>色谱纯</option>
+                                        <option value="标准溶液" {% if request.form.category == '标准溶液' %}selected{% endif %}>标准溶液</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">操作类型</label>
+                                    <select class="form-select" name="action">
+                                        <option value="">所有操作类型</option>
+                                        <option value="入库" {% if request.form.action == '入库' %}selected{% endif %}>入库</option>
+                                        <option value="出库" {% if request.form.action == '出库' %}selected{% endif %}>出库</option>
+                                        <option value="盘点" {% if request.form.action == '盘点' %}selected{% endif %}>盘点</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label class="form-label">库位</label>
+                                    <select class="form-select" name="location">
+                                        <option value="">所有库位</option>
+                                        <option value="1#仓" {% if request.form.location == '1#仓' %}selected{% endif %}>1#仓</option>
+                                        <option value="安全柜" {% if request.form.location == '安全柜' %}selected{% endif %}>安全柜</option>
+                                        <option value="通风橱" {% if request.form.location == '通风橱' %}selected{% endif %}>通风橱</option>
+                                        <option value="易制爆仓库" {% if request.form.location == '易制爆仓库' %}selected{% endif %}>易制爆仓库</option>
+                                        <option value="冰箱" {% if request.form.location == '冰箱' %}selected{% endif %}>冰箱</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- 新增仓库位置搜索字段 -->
+                                <div class="col-md-6">
+                                    <label class="form-label">仓库位置</label>
+                                    <input type="text" class="form-control" name="warehouse_location" 
+                                           value="{{ request.form.warehouse_location }}" placeholder="输入仓库位置">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <h5 class="mb-3 text-primary"><i class="bi bi-building me-2"></i>生产信息</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">生产厂家</label>
+                                    <input type="text" class="form-control" name="manufacturer" 
+                                           value="{{ request.form.manufacturer }}" placeholder="输入生产厂家">
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label">批次号</label>
+                                    <input type="text" class="form-control" name="batch_number" 
+                                           value="{{ request.form.batch_number }}" placeholder="输入批次号">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <h5 class="mb-3 text-primary"><i class="bi bi-calendar-range me-2"></i>日期范围</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="date-range-label">失效日期范围</label>
+                                    <div class="row g-2">
+                                        <div class="col">
+                                            <input type="date" class="form-control" name="start_date" 
+                                                   value="{{ request.form.start_date }}" placeholder="开始日期">
+                                        </div>
+                                        <div class="col">
+                                            <input type="date" class="form-control" name="end_date" 
+                                                   value="{{ request.form.end_date }}" placeholder="结束日期">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="date-range-label">收支日期范围</label>
+                                    <div class="row g-2">
+                                        <div class="col">
+                                            <input type="date" class="form-control" name="production_start_date" 
+                                                   value="{{ request.form.production_start_date }}" placeholder="开始日期">
+                                        </div>
+                                        <div class="col">
+                                            <input type="date" class="form-control" name="production_end_date" 
+                                                   value="{{ request.form.production_end_date }}" placeholder="结束日期">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="col-12 mt-3">
+                    <div class="search-btn-group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i> 查询
+                        </button>
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat me-1"></i> 重置
+                        </button>
+                        <a href="{{ url_for('add_chemical') }}" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-1"></i> 添加化学品
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 查询结果区域 -->
+    {% if chemicals.items %}
+    <div class="table-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="bi bi-table me-2"></i>查询结果（共 {{ chemicals.total }} 条记录）</h4>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                    <i class="bi bi-download me-1"></i> 导出数据
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle" id="chemicalTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>序号</th>
+                        <th>商品代码</th>
+                        <th>化学品名称</th>
+                        <th>CAS编号</th>
+                        <th>类别</th>
+                        <th>规格</th>
+                        <th>浓度</th>
+                        <th>单位</th>
+                        <th>生产商</th>
+                        <th>批次号</th>
+                        <th>
+                            <div class="sortable-header" data-sort="expiration_date" data-direction="{{ sort_direction }}">
+                                <span>过期日期</span>
+                                {% if sort_field == 'expiration_date' %}
+                                    <i class="bi bi-sort-{{ 'down' if sort_direction == 'desc' else 'up' }} sort-indicator"></i>
+                                {% else %}
+                                    <i class="bi bi-filter sort-indicator"></i>
+                                {% endif %}
+                            </div>
+                        </th>
+                        <th>操作</th>
+                        <th>操作数量</th>
+                        <th>此批总库存</th>
+                        <th>总库存</th>
+                        <th>安全库存</th>
+                        <th>
+                            <div class="sortable-header" data-sort="production_date" data-direction="{{ sort_direction }}">
+                                <span>收支日期</span>
+                                {% if sort_field == 'production_date' %}
+                                    <i class="bi bi-sort-{{ 'down' if sort_direction == 'desc' else 'up' }} sort-indicator"></i>
+                                {% else %}
+                                    <i class="bi bi-filter sort-indicator"></i>
+                                {% endif %}
+                            </div>
+                        </th>
+                        <th>操作员</th>
+                        <th>确认人</th>
+                        <th>位置</th>
+                        <!-- 新增仓库位置列 -->
+                        <th>仓库位置</th>
+                        <th>状态</th>
+                        <th>图片</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chemical in chemicals.items %}
+                    <tr>
+                        <td>{{ loop.index + (chemicals.page - 1) * chemicals.per_page }}</td>
+                        <td>{{ chemical.product_code }}</td>
+                        <td>
+                            {{ chemical.name }}
+                            {% if chemical.days_remaining is not none and chemical.days_remaining <= 30 %}
+                                <span class="status-indicator status-expiring"></span>
+                            {% endif %}
+                            {% if chemical.total_stock < chemical.safety_stock %}
+                                <span class="status-indicator status-low"></span>
+                            {% endif %}
+                        </td>
+                        <td>{{ chemical.cas_number or '-' }}</td>
+                        <td>{{ chemical.category }}</td>
+                        <td>{{ chemical.specification }}</td>
+                        <td>{{ chemical.concentration or '-' }}</td>
+                        <td>{{ chemical.unit or '-' }}</td>
+                        <td>{{ chemical.manufacturer }}</td>
+                        <td>{{ chemical.batch_number }}</td>
+                        <td data-order="{{ chemical.expiration_date.strftime('%Y-%m-%d') }}">
+                            {{ chemical.expiration_date.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td>{{ chemical.action }}</td>
+                        <td>{{ chemical.quantity }}</td>
+                        <td>{{ chemical.batch_total_stock }}</td>
+                        <td>{{ chemical.total_stock }}</td>
+                        <td>{{ chemical.safety_stock }}</td>
+                        <td data-order="{{ chemical.production_date.strftime('%Y-%m-%d') }}">
+                            {{ chemical.production_date.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td>{{ chemical.operator }}</td>
+                        <td>{{ chemical.confirmer }}</td>
+                        <td>{{ chemical.location }}</td>
+                        <!-- 新增仓库位置列内容 -->
+                        <td>{{ chemical.warehouse_location or '-' }}</td>
+                        <td>
+                            <span class="badge-status 
+                                {% if chemical.status == '正常' %}bg-success
+                                {% elif chemical.status == '待检' %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ chemical.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if chemical.image %}
+                                <a href="{{ url_for('view_image', id=chemical.id) }}" target="_blank">
+                                    <i class="bi bi-image"></i>
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+ <td class="action-buttons">
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('edit_chemical', id=chemical.id) }}" class="btn btn-sm btn-outline-primary" title="编辑">
+            <i class="bi bi-pencil"></i>
+        </a>
+        <button class="btn btn-sm btn-outline-danger delete-btn" 
+                title="删除"
+                data-id="{{ chemical.id }}"
+                data-name="{{ chemical.name }}"
+                data-code="{{ chemical.product_code }}">
+            <i class="bi bi-trash"></i>
+        </button>
+        <a href="{{ url_for('view_chemical', id=chemical.id) }}" class="btn btn-sm btn-outline-info" title="查看详情">
+            <i class="bi bi-eye"></i>
+        </a>
+        <!-- 新增的复制新记录按钮 -->
+        <a href="{{ url_for('clone_chemical', id=chemical.id) }}" class="btn btn-sm btn-outline-warning" title="复制新记录">
+            <i class="bi bi-files"></i>
+        </a>
+    </div>
+</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页导航 -->
+        <nav aria-label="Page navigation" class="pagination-container">
+            <ul class="pagination">
+                <li class="page-item {% if not chemicals.has_prev %}disabled{% endif %}">
+                    <a class="page-link" 
+                       href="{{ url_for('search', 
+                               page=chemicals.prev_num, 
+                               sort=sort_field, 
+                               direction=sort_direction,
+                               **request.args.to_dict()|dict_without('page', 'sort', 'direction')) }}">
+                        <i class="bi bi-chevron-left"></i> 上一页
+                    </a>
+                </li>
+                
+                {% for p in chemicals.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=3) %}
+                    {% if p %}
+                        <li class="page-item {% if p == chemicals.page %}active{% endif %}">
+                            <a class="page-link" 
+                               href="{{ url_for('search', 
+                                       page=p, 
+                                       sort=sort_field, 
+                                       direction=sort_direction,
+                                       **request.args.to_dict()|dict_without('page', 'sort', 'direction')) }}">{{ p }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                <li class="page-item {% if not chemicals.has_next %}disabled{% endif %}">
+                    <a class="page-link" 
+                       href="{{ url_for('search', 
+                               page=chemicals.next_num, 
+                               sort=sort_field, 
+                               direction=sort_direction,
+                               **request.args.to_dict()|dict_without('page', 'sort', 'direction')) }}">
+                        下一页 <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% else %}
+    <div class="no-results">
+        <div class="mb-3">
+            <i class="bi bi-search" style="font-size: 3rem; color: #adb5bd;"></i>
+        </div>
+        <h4 class="text-muted mb-3">未找到符合条件的化学品记录</h4>
+        <p class="text-muted mb-4">请尝试修改搜索条件或添加新的化学品</p>
+        <a href="{{ url_for('add_chemical') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> 添加化学品
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- 密码验证模态框 -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>删除确认</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <p class="text-danger">您正在尝试删除以下化学品：</p>
+                        <p class="fw-bold" id="deleteChemicalInfo"></p>
+                        <p class="text-danger">此操作不可撤销，请谨慎操作！</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deletePassword" class="form-label">请输入管理员密码：</label>
+                        <input type="password" class="form-control" id="deletePassword" 
+                               placeholder="输入删除密码" autocomplete="off">
+                    </div>
+                    <div class="alert alert-danger d-none" id="passwordError">
+                        <i class="bi bi-exclamation-circle me-2"></i>密码错误，请重新输入
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // 当前日期显示
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日`;
+            document.getElementById('currentDate').textContent = formattedDate;
+
+            // 初始化工具提示
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // 删除按钮事件处理
+            let currentDeleteId = null;
+            
+            // 使用事件委托处理删除按钮点击
+            $(document).on('click', '.delete-btn', function() {
+                const chemicalId = $(this).data('id');
+                const chemicalName = $(this).data('name');
+                const chemicalCode = $(this).data('code');
+                
+                currentDeleteId = chemicalId;
+                
+                // 更新模态框内容
+                $('#deleteChemicalInfo').text(`${chemicalName} (${chemicalCode})`);
+                $('#deletePassword').val('');
+                $('#passwordError').addClass('d-none');
+                
+                // 显示模态框
+                $('#deleteModal').modal('show');
+            });
+            
+            // 确认删除按钮事件处理
+            $('#confirmDeleteBtn').on('click', function() {
+                const password = $('#deletePassword').val();
+                
+                if (!password) {
+                    $('#passwordError').removeClass('d-none').text('请输入删除密码');
+                    return;
+                }
+                
+                // 发送AJAX请求
+                $.ajax({
+                    url: `/delete/${currentDeleteId}`,
+                    type: 'POST',
+                    data: { password: password },
+                    success: function(response) {
+                        // 重定向到首页
+                        window.location.href = "{{ url_for('index') }}";
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 403) {
+                            $('#passwordError').removeClass('d-none').text('密码错误，请重新输入');
+                            $('#deletePassword').val('').focus();
+                        } else {
+                            alert('删除失败: ' + xhr.responseText);
+                        }
+                    }
+                });
+            });
+            
+            // 密码输入框事件处理
+            $('#deletePassword').on('input', function() {
+                $('#passwordError').addClass('d-none');
+            });
+
+            // 初始化DataTables
+            const table = $('#chemicalTable').DataTable({
+                paging: false,
+                searching: false,
+                info: false,
+                ordering: false,
+                columnDefs: [
+                    { orderable: false, targets: [0, 22] }, // 序号和操作列不可排序
+                    { width: '5%', targets: 0 }, // 序号列宽度
+                    { width: '8%', targets: 22 } // 操作列宽度
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/zh-CN.json'
+                },
+                scrollY: '55vh',
+                scrollCollapse: true,
+                autoWidth: false
+            });
+
+            // 折叠按钮交互
+            document.querySelectorAll('.collapse-toggle').forEach(button => {
+                button.addEventListener('click', function() {
+                    const icon = this.querySelector('i');
+                    const textSpan = this.querySelector('span');
+                    icon.style.transition = 'transform 0.2s';
+                    
+                    if (this.ariaExpanded === 'true') {
+                        icon.style.transform = 'rotate(0deg)';
+                        textSpan.textContent = '显示更多搜索条件';
+                    } else {
+                        icon.style.transform = 'rotate(180deg)';
+                        textSpan.textContent = '隐藏更多搜索条件';
+                    }
+                });
+            });
+
+            // 重置按钮处理
+            document.querySelector('button[type="reset"]').addEventListener('click', function() {
+                setTimeout(() => {
+                    const collapse = new bootstrap.Collapse('#moreFilters');
+                    collapse.hide();
+                }, 10);
+            });
+            
+            // 排序功能
+            $('.sortable-header').on('click', function() {
+                const sortField = $(this).data('sort');
+                const currentDirection = $(this).data('direction');
+                const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+                
+                // 更新URL
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', sortField);
+                url.searchParams.set('direction', newDirection);
+                
+                window.location.href = url.toString();
+            });
+            
+            // 导出按钮功能
+            $('#exportBtn').on('click', function() {
+                // 获取当前搜索参数
+                const searchParams = new URLSearchParams(window.location.search);
+                
+                // 构建导出URL
+                let exportUrl = "{{ url_for('export_search_results') }}?";
+                
+                // 添加所有搜索参数
+                for (const [key, value] of searchParams) {
+                    exportUrl += `${key}=${encodeURIComponent(value)}&`;
+                }
+                
+                // 移除最后一个&
+                exportUrl = exportUrl.slice(0, -1);
+                
+                // 打开新窗口下载
+                window.open(exportUrl, '_blank');
+            });
+            
+            // 响应式调整
+            $(window).on('resize', function() {
+                table.columns.adjust();
+            });
+        });
+    </script>
+</body>
+</html>

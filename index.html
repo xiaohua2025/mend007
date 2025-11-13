@@ -1,0 +1,748 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实验室智能管理系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* 基础表格样式 */
+        #chemicalTable {
+            font-size: 0.9rem;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        /* 智能搜索区域 */
+        .collapsible-section {
+            margin-bottom: 1rem;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+        .collapsible-section a.collapsible-header {
+            text-decoration: none;
+            color: inherit;
+        }
+        .collapsible-section a.collapsible-header:hover {
+            background-color: #e9ecef;
+        }
+        .collapsible-content {
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            display: none;
+        }
+        .collapsible-content.show {
+            display: block !important;
+        }
+
+        /* 智能搜索结果 */
+        #smartSearchResult {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            margin-top: 1rem;
+            display: none;
+        }
+        #smartSearchResult.show {
+            display: block;
+        }
+
+        /* 高级搜索卡片 */
+        .adv-search-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* 批量操作面板 */
+        .batch-actions {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+            display: none;
+        }
+        .batch-actions.show {
+            display: block;
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+        .status-expiring { background-color: #ffc107; }
+        .status-low { background-color: #dc3545; }
+    </style>
+</head>
+<body class="container mt-4">
+    <!-- 智能预警容器 -->
+    <div id="alertsContainer" class="alert-fixed-top"></div>
+
+    <!-- 标题栏 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-flask me-2"></i>实验室智能管理系统</h1>
+        <div class="alert alert-info py-2 mb-0">
+            <i class="bi bi-calendar-check me-2"></i>当前日期：<span id="currentDate"></span>
+        </div>
+    </div>
+
+    <!-- 主操作工具栏 -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+<div class="btn-group">
+    <a href="{{ url_for('add_chemical') }}" class="btn btn-success"><i class="bi bi-plus-lg"></i> 新增</a>
+    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+        <span class="visually-hidden">更多操作</span>
+    </button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{{ url_for('import_chemicals') }}"><i class="bi bi-upload"></i> 批量导入</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('export_chemicals') }}"><i class="bi bi-filetype-csv"></i> 导出CSV</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('export_chemicals_excel') }}"><i class="bi bi-file-earmark-spreadsheet"></i> 导出Excel</a></li>
+    </ul>
+</div>
+        <div class="btn-group">
+            <a href="{{ url_for('expiration_reminder') }}" class="btn btn-warning"><i class="bi bi-clock"></i> 过期预警</a>
+            <a href="{{ url_for('safety_stock_reminder') }}" class="btn btn-danger"><i class="bi bi-exclamation-octagon"></i> 库存预警</a>
+             
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('compare_years') }}" class="btn btn-info"><i class="bi bi-graph-up"></i> 年度对比</a>
+        </div>
+        <button class="btn btn-warning" onclick="loadSmartAlerts()">
+            <i class="bi bi-lightning-charge"></i> 智能预警
+        </button>
+        </div>
+    <button class="btn btn-primary" onclick="location.href='{{ url_for('warehouse') }}'">
+        <i class="bi bi-house-door"></i> 化学品实时报表
+    </button>
+</div>
+<button class="btn btn-danger" onclick="location.href='{{ url_for('check_materials') }}'">
+        <i class="bi bi-ban"></i> 禁用原料检查
+    </button>
+</div>
+        <button class="btn btn-primary" onclick="toggleSection('moreQueriesContent')">
+            <i class="bi bi-search"></i> 更多查询
+        </button>
+
+
+<!-- 收藏控制按钮 -->
+<div class="collapsible-header" onclick="toggleFavoriteSection()">
+    <span><i class="bi bi-star me-2"></i> 收藏夹</span>
+    <i class="bi bi-chevron-down" id="favorite-toggle-icon"></i>
+</div>
+
+<!-- 收藏项容器 -->
+<div class="collapsible-content show" id="favorite-section">
+    <!-- 分析实验室试剂查询 -->
+    <div class="collapsible-section">
+        <a href="{{ url_for('search') }}" class="collapsible-header text-dark">
+            <span><i class="bi bi-search me-2"></i>分析实验室试剂查询</span>
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- 仪器设备月度检查表 -->
+    <div class="collapsible-section">
+        <a href="{{ url_for('equipment_list') }}" class="collapsible-header text-dark">
+            <span><i class="bi bi-cpu me-2"></i>仪器设备月度检查表</span>
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- 药品与物资检查表 -->
+    <div class="collapsible-section">
+        <a href="{{ url_for('medicine_material_list') }}" class="collapsible-header text-dark">
+            <span><i class="bi bi-file-medical me-2"></i>药品与物资检查表</span>
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+    <!-- 更多查询折叠区域 -->
+<div class="collapsible-header" onclick="toggleSection('moreQueriesContent')">
+    <span><i class="bi bi-search me-2"></i>高级查询工具</span>
+    <i class="bi bi-chevron-down toggle-icon"></i>
+</div>
+<div id="moreQueriesContent" class="collapsible-content show"> 
+            <!-- 高级搜索表单 -->
+            <div class="adv-search-card">
+    <form id="advSearchForm" action="{{ url_for('adv_search') }}" method="POST">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="name" placeholder="化学品名称">
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="code" placeholder="商品代码">
+            </div>
+            <!-- 新增CAS编号字段 -->
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="cas" placeholder="CAS编号">
+            </div>
+            <div class="col-md-1">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="fuzzy" id="fuzzyCheck" checked>
+                    <label class="form-check-label" for="fuzzyCheck">模糊查询</label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">查询</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 在标题栏部分添加用户信息 -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-flask me-2"></i>实验室智能管理系统</h1>
+    <div class="d-flex align-items-center">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle me-2"></i>
+                {{ session.username or '未登录' }}
+                <span class="badge bg-{{ 'danger' if session.role == 'admin' else 'warning' if session.role == 'manager' else 'info' }} ms-2">
+                    {{ session.role or 'guest' }}
+                </span>
+            </button>
+            <ul class="dropdown-menu">
+                {% if session.username %}
+                    <li><a class="dropdown-item" href="{{ url_for('profile') }}">
+                        <i class="bi bi-person me-2"></i>个人信息
+                    </a></li>
+                    {% if session.role == 'admin' %}
+                    <li><a class="dropdown-item" href="{{ url_for('user_management') }}">
+                        <i class="bi bi-people me-2"></i>用户管理
+                    </a></li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                        <i class="bi bi-box-arrow-right me-2"></i>退出登录
+                    </a></li>
+                {% else %}
+                    <li><a class="dropdown-item" href="{{ url_for('login') }}">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>登录
+                    </a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="alert alert-info py-2 mb-0 ms-3">
+            <i class="bi bi-calendar-check me-2"></i>当前日期：<span id="currentDate"></span>
+        </div>
+    </div>
+</div>
+
+<!-- 新增智能搜索结果展示区 -->
+<div class="chemical-card mt-4" id="smartSearchResult" style="display:none;">
+    <h5><i class="bi bi-robot me-2"></i>智能搜索结果</h5>
+    <div id="searchResultContent"></div>
+</div>
+
+<script>
+        // 智能搜索处理函数
+        async function handleSmartSearch() {
+            const query = document.getElementById('chemicalQuery').value.trim();
+            const engine = document.getElementById('searchEngine').value;
+
+
+
+
+ // 新增本地文件处理逻辑
+    const localSearchMap = {
+        'local_msds': '/search_local_msds',
+        'local_fi': '/search_local_fi',
+        'local_ecoa': '/search_local_ecoa'
+    };
+
+    if (localSearchMap[engine]) {
+        if (!query) {
+            showAlert('请输入搜索关键词', 'warning');
+            return;
+        }
+
+        try {
+            showLoading();
+            const response = await fetch(localSearchMap[engine], {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ keyword: query })
+            });
+            
+            const files = await response.json();
+            
+            if(files.length === 0) {
+                showAlert('未找到匹配的文件', 'info');
+                return;
+            }
+
+            renderMSDSFiles(files);
+        } catch (error) {
+            showAlert(`搜索失败: ${error.message}`, 'danger');
+        } finally {
+            hideLoading();
+        }
+        return;
+    }
+            
+            if (!query) {
+                showAlert('请输入查询内容', 'warning');
+                return;
+            }
+
+            try {
+                showLoading();
+                let apiUrl = '';
+                
+                // 根据选择的搜索引擎构建URL
+                switch(engine) {
+                    case 'deepseek':
+                        apiUrl = `/ai_query`;
+                        break;
+                    // 中文数据库
+                    case 'chemicalbook':
+                        apiUrl = `https://www.chemicalbook.com/Search.aspx?keyword=${encodeURIComponent(query)}`;
+                        break;
+                    case 'merck':
+                        apiUrl = `https://www.sigmaaldrich.cn/CN/zh/search/${encodeURIComponent(query)}`;
+                        break;
+                    case 'hgmsds':
+                        apiUrl = `http://www.hgmsds.com/search?keyword=${encodeURIComponent(query)}`;
+                        break;
+                    case 'cirs-zh':
+                        apiUrl = `https://zhg.cirs-group.com/product-and-service/china-cosmetic-ingredient?name=${encodeURIComponent(query)}`;
+                        break;
+                    case 'ccis':
+                        apiUrl = `https://hgt.cirs-group.com/tools/ccis/inv/list?keyword=${encodeURIComponent(query)}`;
+                        break;
+                        
+                    // 国际数据库
+                    case 'cas':
+                        apiUrl = `https://commonchemistry.cas.org/results?q=${encodeURIComponent(query)}`;
+                        break;
+                    case 'pubchem':
+                        apiUrl = `https://pubchem.ncbi.nlm.nih.gov/#query=${encodeURIComponent(query)}`;
+                        break;
+                    case 'echa':
+                        apiUrl = `https://echa.europa.eu/search-for-chemicals?p_p_id=disssimplesearch_WAR_disssearchportlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_disssimplesearch_WAR_disssearchportlet_javax.portlet.action=search&_disssimplesearch_WAR_disssearchportlet_searchType=substance&_disssimplesearch_WAR_disssearchportlet_query=${encodeURIComponent(query)}`;
+                        break;
+                    case 'chemspider':
+                        apiUrl = `http://www.chemspider.com/Search.aspx?q=${encodeURIComponent(query)}`;
+                        break;
+                    case 'cosing':
+                        apiUrl = `https://ec.europa.eu/growth/tools-databases/cosing/index.cfm?fuseaction=search.simple`;
+                        break;
+                    case 'inci':
+                        apiUrl = `https://inci.guide/search?query=${encodeURIComponent(query)}`;
+                        break;
+                        
+                    // 法规与安全
+                    case 'unece':
+                        apiUrl = `https://unece.org/transport/dangerous-goods/search?keywords=${encodeURIComponent(query)}`;
+                        break;
+                    case 'ghs':
+                        apiUrl = `https://www.unece.org/trans/danger/publi/ghs/ghs_search.html?q=${encodeURIComponent(query)}`;
+                        break;
+                        
+                    // 海关编码
+                    case 'hscode':
+                        apiUrl = `http://www.hsbianma.com/search?keywords=${encodeURIComponent(query)}`;
+                        break;
+                    case 'mofcom':
+                        apiUrl = `https://wmsw.mofcom.gov.cn/wmsw/toolBox/sch?keyword=${encodeURIComponent(query)}`;
+                        break;
+
+                    case 'hsciq':
+                        apiUrl = `https://www.hsciq.com/HSCN/search?keywords=${encodeURIComponent(query)}`;
+                        break;
+
+                      case 'hs.bianmachaxun':
+                        apiUrl = `https://hs.bianmachaxun.com/?word=${encodeURIComponent(query)}`;
+                        break;
+
+                     case 'flow_FS':
+                        apiUrl = `http://avonflow.china.avon.com:9080/bizflow/np_form/fsspec/FsspecMstrView_lg.jsp?type=view&part=${encodeURIComponent(query)}`;
+                        break;
+
+                      case 'flow_ItemMaster':
+                        apiUrl = `http://avonflow.china.avon.com:9080/NPD/com/avon/workflow/inquiry/ItemMaster.jsp?item=${encodeURIComponent(query)}`;
+                        break;
+              
+                       case 'flow_IMFChange':
+                        apiUrl = `http://avonflow.china.avon.com:9080/NPD/com/avon/workflow/inquiry/IMFChangeLog.jsp?partName=${encodeURIComponent(query)}`;
+                        break;
+
+
+                }
+
+                // DeepSeek专属处理
+                if (engine === 'deepseek') {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({question: query})
+                    });
+                    const data = await response.json();
+                    renderDeepSeekResult(data);
+                } else {
+                    // 其他搜索引擎直接跳转
+                    window.open(apiUrl, '_blank');
+                }
+                
+            } catch (error) {
+                showAlert(`搜索失败: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 渲染DeepSeek结果
+        function renderDeepSeekResult(data) {
+            const resultDiv = document.getElementById('searchResultContent');
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">${data.data.answer}</div>
+                ${data.data.chemical ? `
+                <div class="mt-3">
+                    <h6>关联化学品信息</h6>
+                    <p>名称: ${data.data.chemical.name}</p>
+                    <p>安全等级: ${data.data.chemical.safety_level}</p>
+                    <a href="${data.data.chemical.msds}" target="_blank">查看MSDS</a>
+                </div>` : ''}
+            `;
+            document.getElementById('smartSearchResult').style.display = 'block';
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            document.getElementById('loading').style.display = 'flex';
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // 显示查询加载状态
+        function showQueryLoading() {
+            document.getElementById('queryLoading').style.display = 'block';
+            document.getElementById('queryResult').style.display = 'none';
+        }
+
+        // 隐藏查询加载状态
+        function hideQueryLoading() {
+            document.getElementById('queryLoading').style.display = 'none';
+        }
+
+        // 渲染化学品数据
+        function renderChemicalData(data) {
+            const safeGet = (value, fallback = '无') => value || fallback;
+}
+// 新增文件列表渲染函数
+function renderMSDSFiles(files) {
+    const resultDiv = document.getElementById('searchResultContent');
+    resultDiv.innerHTML = `
+        <div class="list-group">
+            ${files.map(file => `
+                <a href="/download_local_file?path=${encodeURIComponent(file.path.replace(/\\/g, '/'))}" 
+                   class="list-group-item list-group-item-action"
+                   target="_blank"
+                   title="点击下载文件"
+                   onclick="trackFileOpen('${file.name.replace(/'/g, "\\'")}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex flex-column flex-grow-1">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-truncate fw-bold">${file.name}</span>
+                                <small class="text-muted ms-3 text-nowrap">${file.mtime}</small>
+                            </div>
+                            <small class="text-muted text-truncate">${file.path}</small>
+                        </div>
+                    </div>
+                </a>
+            `).join('')}
+        </div>
+    `;
+    document.getElementById('smartSearchResult').style.display = 'block';
+}
+
+// 文件打开跟踪（可选）
+function trackFileOpen(filename) {
+    fetch('/log_file_access', {
+        method: 'POST',
+        body: JSON.stringify({ filename: filename })
+    });
+}
+</script>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主数据表格 -->
+    <div class="mt-4 position-relative">
+        <h4><i class="bi bi-table me-2"></i>当前库存（共 {{ chemicals.total }} 条）</h4>
+        <div class="table-responsive mt-3">
+            <table class="table table-hover align-middle" id="chemicalTable">
+                <!-- 表格内容 -->
+            </table>
+        </div>
+    </div>
+
+    <!-- 批量操作面板 -->
+    <div id="batchActions" class="batch-actions">
+        <h5><i class="bi bi-check-square me-2"></i>批量操作</h5>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <select class="form-select" id="batchActionType">
+                    <option value="in">入库</option>
+                    <option value="out">出库</option>
+                    <option value="check">盘点</option>
+                    <option value="stock">库存计算</option>
+                    <option value="last">最后记录</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary" onclick="executeBatchAction()">执行</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 初始化功能
+        document.addEventListener('DOMContentLoaded', () => {
+            initCurrentDate();
+            initEventListeners();
+        });
+
+        function initCurrentDate() {
+            const today = new Date();
+            document.getElementById('currentDate').textContent = 
+                today.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
+        function initEventListeners() {
+            // 复选框事件监听
+            document.querySelectorAll('.chemical-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateBatchActions);
+            });
+        }
+
+        // 折叠功能（仅作用于更多查询区域）
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const header = section.closest('.collapsible-section').querySelector('.collapsible-header');
+            const icon = header.querySelector('.toggle-icon');
+            
+            section.classList.toggle('show');
+            icon.classList.toggle('bi-chevron-up');
+            icon.classList.toggle('bi-chevron-down');
+        }
+
+        // 批量操作功能
+        function updateBatchActions() {
+            const checkedBoxes = document.querySelectorAll('.chemical-checkbox:checked');
+            const batchActions = document.getElementById('batchActions');
+            batchActions.classList.toggle('show', checkedBoxes.length > 0);
+        }
+
+        async function executeBatchAction() {
+            const actionType = document.getElementById('batchActionType').value;
+            const checkedItems = Array.from(document.querySelectorAll('.chemical-checkbox:checked'))
+                .map(cb => ({ id: cb.dataset.id, name: cb.dataset.name, code: cb.dataset.code }));
+
+            try {
+                const response = await fetch(`/batch_action?type=${actionType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: checkedItems })
+                });
+                
+                const result = await response.json();
+                handleBatchResult(actionType, result);
+            } catch (error) {
+                showAlert(`操作失败: ${error.message}`, 'danger');
+            }
+        }
+
+        function handleBatchResult(type, data) {
+            let message = '';
+            switch(type) {
+                case 'stock':
+                    message = data.map(item => 
+                        `${item.name}: 库存 ${item.stock}（入库 ${item.in} - 出库 ${item.out} - 盘点 ${item.check}）`
+                    ).join('<br>');
+                    break;
+                case 'last':
+                    message = data.map(item => 
+                        `${item.name} 最后操作: ${item.last_action}（${item.date}）`
+                    ).join('<br>');
+                    break;
+                default:
+                    message = `成功操作${data.count}条记录`;
+            }
+            showAlert(message, 'success');
+        }
+
+        // 智能搜索功能
+        async function handleSmartSearch() {
+            const query = document.getElementById('chemicalQuery').value.trim();
+            const engine = document.getElementById('searchEngine').value;
+
+            try {
+                if (engine === 'deepseek') {
+                    const response = await fetch('/ai_query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question: query })
+                    });
+                    renderSearchResult(await response.json());
+                } else {
+                    // 其他搜索引擎处理
+                }
+            } catch (error) {
+                showAlert(`搜索失败: ${error.message}`, 'danger');
+            }
+        }
+
+        function renderSearchResult(data) {
+            const resultDiv = document.getElementById('searchResultContent');
+            const smartSearch = document.getElementById('smartSearchResult');
+            
+            resultDiv.innerHTML = data.data.answer;
+            smartSearch.classList.add('show');
+        }
+
+        // 通用功能
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+// 智能预警功能
+        async function loadSmartAlerts() {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = `
+                <div class="d-flex align-items-center text-primary">
+                    <div class="spinner-border spinner-border-sm me-2"></div>
+                    <span>正在加载智能预警...</span>
+                </div>`;
+
+            try {
+                const response = await fetch('/smart_alerts');
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+                const alerts = await response.json();
+
+                // 清空容器并显示预警信息
+                container.innerHTML = alerts.length ? 
+                    alerts.map(alert => `
+                        <div class="alert alert-${alert.severity === 'critical' ? 'danger' : 'warning'} alert-dismissible fade show">
+                            <i class="bi ${alert.severity === 'critical' ? 'bi-exclamation-octagon' : 'bi-exclamation-triangle'} me-2"></i>
+                            ${alert.message}
+                            <a href="/chemical_details/${alert.id}" class="alert-link ms-2">查看详情</a>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `).join('') : `
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                            <div class="mt-2">当前没有需要预警的化学品</div>
+                    </div>`;
+        } catch (error) {
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle-fill me-2"></i>
+                    加载预警失败: ${error.message}
+                </div>`;
+        }
+    }
+        // 获取安全提示
+        function getSafetyNotice(category) {
+            const notices = {
+                '易燃液体': '易燃液体 - 请远离火源',
+                '腐蚀品': '腐蚀性物质 - 注意防护装备',
+                '氧化剂': '氧化剂 - 避免与有机物接触'
+            };
+            return notices[category] || '危险品 - 请遵守操作规范';
+        }
+
+        // 获取存储建议
+        function getStorageAdvice(category) {
+            const advice = {
+                '易燃液体': '存储要求：阴凉通风处，温度不超过30℃',
+                '腐蚀品': '存储要求：耐腐蚀容器，单独存放',
+                '氧化剂': '存储要求：与还原剂隔离存放'
+            };
+            return advice[category] || '存储要求：请参考物质安全数据表';
+        }
+
+        // 显示提示信息
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').prepend(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initCurrentDate();
+            // 绑定回车事件
+            document.getElementById('chemicalSearch').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleChemicalSearch();
+                }
+            });
+        });
+// 收藏夹切换功能
+function toggleFavoriteSection() {
+    const section = document.getElementById('favorite-section');
+    const icon = document.getElementById('favorite-toggle-icon');
+    
+    section.classList.toggle('show');
+    icon.classList.toggle('bi-chevron-down');
+    icon.classList.toggle('bi-chevron-up');
+
+    // 保存状态到localStorage
+    const isVisible = section.classList.contains('show');
+    localStorage.setItem('favoriteSectionVisible', isVisible);
+}
+
+// 页面加载时恢复收藏夹状态
+document.addEventListener('DOMContentLoaded', () => {
+    const savedState = localStorage.getItem('favoriteSectionVisible');
+    const section = document.getElementById('favorite-section');
+    const icon = document.getElementById('favorite-toggle-icon');
+    
+    if (savedState === 'false') {
+        section.classList.remove('show');
+        icon.classList.remove('bi-chevron-down');
+        icon.classList.add('bi-chevron-up');
+    }
+});
+    </script>
+</body>
+</html>

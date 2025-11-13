@@ -1,0 +1,19 @@
+﻿模板文件
+确保以下模板文件存在并正确配置：
+
+list_chemicals.html：化学品列表。
+
+add_chemical.html：添加化学品表单。
+
+edit_chemical.html：编辑化学品表单。
+
+expiration_reminder.html：过期提醒页面。
+
+safety_stock_reminder.html：安全库存提醒页面。
+
+import_chemicals.html：导入化学品表单。
+
+
+. 升级 pip（可选）
+根据提示，您的 pip 版本较旧（21.1.1），建议升级到最新版本：
+python -m pip install --upgrade pip

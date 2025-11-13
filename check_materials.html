@@ -1,0 +1,790 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSDS智能分析系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --dark-bg: #1a252f;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--light-bg);
+            color: #333;
+            padding-bottom: 50px;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1c2833 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem 0;
+            position: relative;
+        }
+        
+        .step-indicator::before {
+            content: "";
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #e0e0e0;
+            z-index: 1;
+        }
+        
+        .step {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .step.active .step-icon {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+        
+        .step.completed .step-icon {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .chemical-form {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 7px;
+            color: #2c3e50;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+        }
+        
+        .card-header {
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-danger .stat-number {
+            color: var(--danger-color);
+        }
+        
+        .stat-warning .stat-number {
+            color: var(--warning-color);
+        }
+        
+        .result-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+        
+        .result-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .result-badge {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .badge-danger {
+            background-color: rgba(231, 76, 60, 0.15);
+            color: var(--danger-color);
+        }
+        
+        .badge-warning {
+            background-color: rgba(243, 156, 18, 0.15);
+            color: var(--warning-color);
+        }
+        
+        .badge-critical {
+            background-color: rgba(142, 68, 173, 0.15);
+            color: #8e44ad;
+        }
+        
+        .context-box {
+            background-color: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .alert-highlight {
+            border-left: 4px solid var(--danger-color);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        .alert-critical {
+            border-left: 4px solid #8e44ad;
+            animation: pulseCritical 2s infinite;
+        }
+        
+        @keyframes pulseCritical {
+            0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
+        }
+        
+        .highlight-text {
+            background-color: #fff8e1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        
+        .critical-section {
+            border: 1px solid #e74c3c;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: rgba(231, 76, 60, 0.05);
+        }
+        
+        .critical-header {
+            color: var(--danger-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .critical-header i {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .warning-section {
+            border: 1px solid #f39c12;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: rgba(243, 156, 18, 0.05);
+        }
+        
+        .warning-header {
+            color: var(--warning-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .warning-header i {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .recommendation-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            margin-top: 20px;
+        }
+        
+        .recommendation-header {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .recommendation-header i {
+            margin-right: 10px;
+            color: #3498db;
+        }
+        
+        .chemical-name-display {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+        
+        .chemical-cas-display {
+            font-size: 0.95rem;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-flask me-2"></i>智能分析系统
+            </a>
+<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home me-1"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/warehouse">
+                            <i class="fas fa-warehouse me-1"></i>仓库库存
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/expiration_reminder">
+                            <i class="fas fa-clock me-1"></i>过期预警
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/equipment">
+                            <i class="fas fa-microscope me-1"></i>设备管理
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <div class="dropdown me-2">
+                        <button class="btn btn-light dropdown-toggle fw-medium" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>管理员
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>设置</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>退出</a></li>
+                        </ul>
+                    </div>
+<button class="btn btn-warning fw-medium" id="smartAlertsBtn">
+    <i class="fas fa-bell me-1"></i>
+    <span class="badge bg-danger" id="alertCountBadge">0</span>
+</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <div class="step-indicator">
+                    <div class="step active" id="step1">
+                        <div class="step-icon"><i class="fas fa-pencil-alt"></i></div>
+                        <div class="step-label">输入信息</div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-icon"><i class="fas fa-search"></i></div>
+                        <div class="step-label">分析成分</div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-icon"><i class="fas fa-chart-bar"></i></div>
+                        <div class="step-label">查看结果</div>
+                    </div>
+                </div>
+                
+                <!-- 化学品信息输入表单 -->
+                <div class="chemical-form">
+                    <h5 class="mb-4"><i class="fas fa-vial me-2"></i>输入化学品信息</h5>
+                    <div class="form-group">
+                        <label class="form-label">化学名称 (英文)</label>
+                        <input type="text" class="form-control" id="chemicalName" placeholder="例如: Acetone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">中文名称</label>
+                        <input type="text" class="form-control" id="chineseName" placeholder="例如: 丙酮">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">CAS No.</label>
+                        <input type="text" class="form-control" id="casNumber" placeholder="例如: 67-64-1">
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary btn-lg py-3" id="analyzeBtn">
+                            <i class="fas fa-search me-2"></i>智能分析
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 进度卡片 -->
+                <div class="card d-none" id="processingCard">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>分析中...</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 id="progressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="text-center mt-3" id="progressText">准备开始分析...</div>
+                    </div>
+                </div>
+                
+                <!-- 结果卡片 -->
+                <div class="card d-none" id="resultsCard">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>分析结果</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- 化学品信息摘要 -->
+                        <div class="mb-4">
+                            <div class="chemical-name-display" id="analyzedChemicalName">-</div>
+                            <div class="chemical-cas-display">CAS: <span id="analyzedCasNumber">-</span></div>
+                        </div>
+                        
+                        <!-- 结果摘要 -->
+                        <div class="report-summary mb-4">
+                            <h5 class="mb-3"><i class="fas fa-file-medical me-2"></i>成分分析报告</h5>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="stat-card stat-danger">
+                                        <div class="stat-number" id="dangerFound">0</div>
+                                        <div>危险化学品</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card stat-warning">
+                                        <div class="stat-number" id="explosiveFound">0</div>
+                                        <div>易制爆化学品</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card stat-warning">
+                                        <div class="stat-number" id="drugFound">0</div>
+                                        <div>易制毒化学品</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="stat-card stat-warning">
+                                        <div class="stat-number" id="cosmeticFound">0</div>
+                                        <div>化妆品禁用原料</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 匹配结果 -->
+                        <h5 class="mt-4 mb-3"><i class="fas fa-exclamation-triangle me-2"></i>分析详情</h5>
+                        <div id="resultsContainer"></div>
+                        
+                        <!-- 安全建议 -->
+                        <div class="recommendation-box d-none" id="recommendationContainer">
+                            <div class="recommendation-header">
+                                <i class="fas fa-lightbulb"></i>安全处理建议
+                            </div>
+                            <div id="safetyRecommendations"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // DOM元素
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const processingCard = document.getElementById('processingCard');
+        const resultsCard = document.getElementById('resultsCard');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const dangerFound = document.getElementById('dangerFound');
+        const explosiveFound = document.getElementById('explosiveFound');
+        const drugFound = document.getElementById('drugFound');
+        const cosmeticFound = document.getElementById('cosmeticFound');
+        const analyzedChemicalName = document.getElementById('analyzedChemicalName');
+        const analyzedCasNumber = document.getElementById('analyzedCasNumber');
+        const recommendationContainer = document.getElementById('recommendationContainer');
+        const safetyRecommendations = document.getElementById('safetyRecommendations');
+        
+        // 分析按钮点击事件
+        analyzeBtn.addEventListener('click', async () => {
+            const chemicalName = document.getElementById('chemicalName').value.trim();
+            const chineseName = document.getElementById('chineseName').value.trim();
+            const casNumber = document.getElementById('casNumber').value.trim();
+            
+            if (!chemicalName && !chineseName && !casNumber) {
+                alert('请至少输入一个化学品信息');
+                return;
+            }
+            
+            // 显示处理卡片
+            processingCard.classList.remove('d-none');
+            resultsCard.classList.add('d-none');
+            updateStep(2);
+            
+            try {
+                // 分析内容
+                updateProgress(10, '正在准备分析...');
+                
+                // 构建请求数据
+                const chemicalData = {
+                    chemicalName: chemicalName || chineseName,
+                    casNumber: casNumber
+                };
+                
+                // 显示分析的化学品名称
+                analyzedChemicalName.textContent = chemicalData.chemicalName || chemicalData.casNumber;
+                analyzedCasNumber.textContent = chemicalData.casNumber || "未提供";
+                
+                updateProgress(30, '正在智能分析化学品服务...');
+                
+                // 调用后端API
+                const response = await fetch('/analyze_chemical', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(chemicalData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`分析失败: ${response.statusText}`);
+                }
+                
+                const analysisResults = await response.json();
+                
+                // 显示结果
+                const dangerCount = analysisResults.filter(r => r.category === '危险化学品').length;
+                const explosiveCount = analysisResults.filter(r => r.category === '易制爆化学品').length;
+                const drugCount = analysisResults.filter(r => r.category === '易制毒化学品').length;
+                const cosmeticCount = analysisResults.filter(r => r.category === '化妆品禁用原料').length;
+                
+                dangerFound.textContent = dangerCount;
+                explosiveFound.textContent = explosiveCount;
+                drugFound.textContent = drugCount;
+                cosmeticFound.textContent = cosmeticCount;
+                
+                // 如果有危险成分，添加警示效果
+                if (dangerCount > 0) {
+                    dangerFound.parentElement.classList.add('alert-highlight');
+                }
+                if (explosiveCount > 0 || drugCount > 0) {
+                    explosiveFound.parentElement.classList.add('alert-highlight');
+                    drugFound.parentElement.classList.add('alert-highlight');
+                }
+                if (cosmeticCount > 0) {
+                    cosmeticFound.parentElement.classList.add('alert-highlight');
+                }
+                
+                // 渲染结果
+                renderResults(analysisResults);
+                
+                // 生成安全建议
+                generateSafetyRecommendations(analysisResults);
+                
+                // 切换到结果卡片
+                processingCard.classList.add('d-none');
+                resultsCard.classList.remove('d-none');
+                updateStep(3);
+            } catch (error) {
+                updateProgress(100, `分析失败: ${error.message}`);
+                setTimeout(() => {
+                    alert(`分析失败: ${error.message}`);
+                    resetUI();
+                }, 2000);
+            }
+        });
+        
+        // 更新进度条
+        function updateProgress(percent, text) {
+            progressBar.style.width = `${percent}%`;
+            progressBar.setAttribute('aria-valuenow', percent);
+            progressText.textContent = text;
+        }
+        
+        // 更新步骤指示器
+        function updateStep(stepNum) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            
+            for (let i = 1; i < stepNum; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            document.getElementById(`step${stepNum}`).classList.add('active');
+        }
+        
+        // 重置UI
+        function resetUI() {
+            processingCard.classList.add('d-none');
+            resultsCard.classList.add('d-none');
+            updateStep(1);
+            
+            // 清除警示效果
+            dangerFound.parentElement.classList.remove('alert-highlight');
+            explosiveFound.parentElement.classList.remove('alert-highlight');
+            drugFound.parentElement.classList.remove('alert-highlight');
+            cosmeticFound.parentElement.classList.remove('alert-highlight');
+        }
+        
+        // 生成安全建议
+        function generateSafetyRecommendations(results) {
+            const hasDanger = results.some(r => r.category === '危险化学品');
+            const hasExplosive = results.some(r => r.category === '易制爆化学品');
+            const hasDrug = results.some(r => r.category === '易制毒化学品');
+            const hasCosmetic = results.some(r => r.category === '化妆品禁用原料');
+            
+            let recommendations = '';
+            
+            if (hasDanger || hasExplosive || hasDrug) {
+                recommendationContainer.classList.remove('d-none');
+                
+                recommendations += '<ul class="mb-0">';
+                
+                if (hasDanger) {
+                    recommendations += `
+                        <li>该化学品包含<strong class="text-danger">危险化学品</strong>，请确保操作人员穿戴适当的防护装备（防护服、手套、护目镜等）</li>
+                        <li>在通风良好的环境下操作，避免吸入蒸气</li>
+                        <li>严格遵守安全操作规程，远离火源和热源</li>
+                    `;
+                }
+                
+                if (hasExplosive) {
+                    recommendations += `
+                        <li>该化学品包含<strong class="text-warning">易制爆化学品</strong>，需特别小心处理</li>
+                        <li>远离火源、热源和氧化剂，保持环境温度低于30℃</li>
+                        <li>储存于防爆柜中，避免震动和摩擦</li>
+                    `;
+                }
+                
+                if (hasDrug) {
+                    recommendations += `
+                        <li>该化学品包含<strong class="text-warning">易制毒化学品</strong>，受国家严格管制</li>
+                        <li>使用前需申请相关许可证，并严格记录使用量</li>
+                        <li>储存于双锁柜中，专人管理</li>
+                    `;
+                }
+                
+                if (hasCosmetic) {
+                    recommendations += `
+                        <li>该化学品包含<strong class="text-info">化妆品禁用原料</strong>，不可用于化妆品生产</li>
+                    `;
+                }
+                
+                recommendations += `
+                    <li>使用前详细阅读MSDS安全数据表，了解急救措施</li>
+                    <li>准备好应急设备（洗眼器、紧急淋浴、灭火器等）</li>
+                    <li>操作时不得单独作业，必须有同事在旁</li>
+                `;
+                
+                recommendations += '</ul>';
+                
+                safetyRecommendations.innerHTML = recommendations;
+            } else {
+                recommendationContainer.classList.add('d-none');
+                safetyRecommendations.innerHTML = '';
+            }
+        }
+        
+        // 渲染结果
+        function renderResults(results) {
+            resultsContainer.innerHTML = '';
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle fa-2x mb-3"></i>
+                        <h4>未发现禁用原料</h4>
+                        <p class="mb-0">化学品中未检测到危险化学品、易制爆化学品、易制毒化学品或化妆品禁用原料</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按类别分组
+            const categories = {
+                '危险化学品': [],
+                '易制爆化学品': [],
+                '易制毒化学品': [],
+                '化妆品禁用原料': []
+            };
+            
+            results.forEach(result => {
+                if (categories[result.category]) {
+                    categories[result.category].push(result);
+                }
+            });
+            
+            // 渲染每个类别
+            Object.entries(categories).forEach(([category, items]) => {
+                if (items.length === 0) return;
+                
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'mb-4';
+                
+                let categoryClass = '';
+                let categoryIcon = '';
+                let criticalClass = '';
+                
+                if (category === '危险化学品') {
+                    categoryClass = 'category-danger';
+                    categoryIcon = '<i class="fas fa-radiation"></i>';
+                    criticalClass = 'critical-section';
+                } else if (category === '易制爆化学品') {
+                    categoryClass = 'category-explosive';
+                    categoryIcon = '<i class="fas fa-bomb"></i>';
+                    criticalClass = 'critical-section';
+                } else if (category === '易制毒化学品') {
+                    categoryClass = 'category-drug';
+                    categoryIcon = '<i class="fas fa-pills"></i>';
+                    criticalClass = 'critical-section';
+                } else if (category === '化妆品禁用原料') {
+                    categoryClass = 'category-cosmetic';
+                    categoryIcon = '<i class="fas fa-spa"></i>';
+                    criticalClass = 'warning-section';
+                }
+                
+                // 添加关键部分标记
+                categoryDiv.innerHTML = `
+                    <div class="${criticalClass}">
+                        <div class="${category === '危险化学品' ? 'critical-header' : 'warning-header'}">
+                            ${categoryIcon}
+                            <h5 class="mb-0">${category} (${items.length})</h5>
+                        </div>
+                        <p class="mb-2"><strong>检测到${items.length}种${category}成分</strong>，请严格遵守相关安全规定</p>
+                    </div>
+                `;
+                
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'row mt-3';
+                
+                items.forEach((item, index) => {
+                    let typeClass = '';
+                    let badgeClass = '';
+                    
+                    if (item.category === '危险化学品') {
+                        typeClass = 'danger';
+                        badgeClass = 'badge-danger';
+                    } else if (item.category === '易制爆化学品') {
+                        typeClass = 'explosive';
+                        badgeClass = 'badge-warning';
+                    } else if (item.category === '易制毒化学品') {
+                        typeClass = 'drug';
+                        badgeClass = 'badge-critical';
+                    } else if (item.category === '化妆品禁用原料') {
+                        typeClass = 'cosmetic';
+                        badgeClass = 'badge-warning';
+                    }
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'col-12 mb-3';
+                    itemDiv.innerHTML = `
+                        <div class="result-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-0">${item.chemical}</h5>
+                                    <div class="mt-1">
+                                        <span class="badge result-badge ${badgeClass}">
+                                            ${item.category}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">${item.conclusion}</div>
+                            <div class="mt-2">
+                                <div class="context-box">
+                                    <div>${item.context}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    itemsContainer.appendChild(itemDiv);
+                });
+                
+                categoryDiv.appendChild(itemsContainer);
+                resultsContainer.appendChild(categoryDiv);
+            });
+        }
+        
+        // 初始化
+        updateStep(1);
+    </script>
+</body>
+</html>

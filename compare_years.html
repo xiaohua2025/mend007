@@ -1,0 +1,1093 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年度对比分析 - 化学品管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container-fluid {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .filter-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .year-tabs {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+        .year-tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            background: #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .year-tab:hover {
+            background: #dee2e6;
+        }
+        .year-tab.active {
+            background: #4361ee;
+            color: white;
+        }
+        .analysis-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+        .fixed-column {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 10;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        .action-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+        .action-in {
+            background: rgba(40, 167, 69, 0.15);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        .action-out {
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+        .action-check {
+            background: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .month-cell {
+            min-width: 100px;
+            background: #f8f9fa;
+            font-weight: 500;
+        }
+        .summary-row {
+            background: #f1f5ff;
+            font-weight: bold;
+        }
+        .category-header {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .chart-container {
+            height: 350px;
+            position: relative;
+        }
+        .export-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .export-options {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            z-index: 1001;
+            width: 350px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 45px;
+            height: 45px;
+            background: #4361ee;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+            z-index: 999;
+        }
+        .scroll-indicator:hover {
+            opacity: 1;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+        .analysis-table th, .analysis-table td {
+            vertical-align: middle;
+            text-align: center;
+        }
+        .month-total {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #4361ee;
+        }
+    </style>
+</head>
+<body class="container-fluid py-4">
+    <!-- 头部导航 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-graph-up me-2"></i>化学品年度运营对比分析</h2>
+            <p class="text-muted mb-0">全面分析化学品年度运营情况，支持多维度对比</p>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-1"></i> 返回首页
+        </a>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-card">
+        <form method="GET" class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label fw-medium">化学品名称</label>
+                <select class="form-select" name="name">
+                    <option value="">所有化学品</option>
+                    {% for chemical in unique_names %}
+                    <option value="{{ chemical }}" {% if search_name == chemical %}selected{% endif %}>{{ chemical }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label fw-medium">批次号</label>
+                <select class="form-select" name="batch">
+                    <option value="">所有批次</option>
+                    {% for batch in unique_batches %}
+                    <option value="{{ batch }}" {% if search_batch == batch %}selected{% endif %}>{{ batch }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bi bi-funnel me-1"></i> 筛选
+                </button>
+                <a href="{{ url_for('compare_years') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-repeat me-1"></i> 重置
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 总统计 -->
+    <div class="row mb-4 g-3">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">总化学品数</h5>
+                            <p class="card-text display-4 mb-0">{{ total_chemicals }}</p>
+                        </div>
+                        <i class="bi bi-flask" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">总库存量</h5>
+                            <p class="card-text display-4 mb-0">{{ total_stock }}</p>
+                        </div>
+                        <i class="bi bi-box-seam" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">现库存量</h5>
+                            <p class="card-text display-4 mb-0">{{ net_stock }}</p>
+                        </div>
+                        <i class="bi bi-clipboard-data" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card card text-white bg-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">过期化学品数</h5>
+                            <p class="card-text display-4 mb-0">{{ expired_count }}</p>
+                        </div>
+                        <i class="bi bi-exclamation-triangle" style="font-size: 2.5rem; opacity: 0.3;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 年度标签导航 -->
+    <div class="year-tabs mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2 flex-wrap">
+                <div class="year-tab active" data-year="all">
+                    全部年度
+                </div>
+                {% for year in comparison_data.keys()|sort(reverse=True) %}
+                <div class="year-tab" data-year="{{ year }}">
+                    {{ year }}年度
+                </div>
+                {% endfor %}
+            </div>
+            <div>
+                <button class="btn btn-success export-btn" id="exportBtn">
+                    <i class="bi bi-download me-1"></i> 导出数据
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 对比分析表 -->
+    <div class="analysis-container">
+        {% if comparison_data %}
+            <!-- 全部年度数据 -->
+            <div class="year-section" id="year-all" style="display:block;">
+                <div class="year-header mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">全部年度运营汇总</h3>
+                        <div class="badge bg-light text-dark fs-6">
+                            <i class="bi bi-calendar-range me-1"></i> {{ min_year }} 至 {{ max_year }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table analysis-table table-bordered export-table" data-year="all">
+                        <thead>
+                            <tr>
+                                <th class="category-header">分类/月份</th>
+                                {% for month in range(1,13) %}
+                                <th class="text-center month-cell">{{ month }}月</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in all_year_data.categories %}
+                            <tr>
+                                <th scope="row" class="fixed-column category-header">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-tag me-2"></i>
+                                        {{ category }}
+                                    </div>
+                                </th>
+                                {% for month in range(1,13) %}
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        {% for action in all_year_data.actions %}
+                                        {% set qty = all_year_data.months[month].categories[category][action] %}
+                                        {% if qty > 0 %}
+                                        <div>
+                                            <span class="action-badge {% if action == '入库' %}action-in{% elif action == '出库' %}action-out{% else %}action-check{% endif %}">
+                                                <i class="bi 
+                                                    {% if action == '入库' %}bi-box-arrow-in-down
+                                                    {% elif action == '出库' %}bi-box-arrow-up
+                                                    {% else %}bi-clipboard-check
+                                                    {% endif %} me-1"></i>
+                                                {{ action }}: {{ qty }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                            <tr class="summary-row">
+                                <td class="fixed-column fw-bold">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calculator me-2"></i>
+                                        月度合计
+                                    </div>
+                                </td>
+                                {% for month in range(1,13) %}
+                                <td class="fw-bold month-total">
+                                    {{ all_year_data.months[month].total }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 全部年度趋势图 -->
+                <div class="mt-4">
+                    <h4 class="mb-3"><i class="bi bi-bar-chart-line me-2"></i>全部年度运营趋势</h4>
+                    <div class="chart-container">
+                        <canvas id="chart-all"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 全部年度总结 -->
+                <div class="alert alert-info mt-4">
+                    <h5><i class="bi bi-lightbulb me-2"></i>全部年度分析总结</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-arrow-up-circle text-success fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最高入库月</div>
+                                    <div>{{ all_year_data.max_in_month }}月: {{ all_year_data.max_in_value }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-arrow-down-circle text-warning fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最高出库月</div>
+                                    <div>{{ all_year_data.max_out_month }}月: {{ all_year_data.max_out_value }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-star text-primary fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最活跃分类</div>
+                                    <div>{{ all_year_data.most_active_category }} ({{ all_year_data.most_active_value }})</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>分类详情分析</h6>
+                        <div class="row">
+                            {% for category, stats in all_year_data.category_stats.items() %}
+                            <div class="col-md-3 mb-2">
+                                <div class="d-flex">
+                                    <span class="badge bg-light text-dark me-2">{{ category }}</span>
+                                    <span class="text-success">入库:{{ stats.in }}</span>
+                                    <span class="text-warning ms-2">出库:{{ stats.out }}</span>
+                                    <span class="text-danger ms-2">盘点:{{ stats.check }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 各年度数据 -->
+            {% for year, year_data in comparison_data.items()|sort(reverse=True) %}
+            <div class="year-section" id="year-{{ year }}" style="display:none;">
+                <div class="year-header mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">{{ year }}年度运营分析</h3>
+                        <div class="badge bg-light text-dark fs-6">
+                            <i class="bi bi-calendar-range me-1"></i> {{ year_data.start_date }} 至 {{ year_data.end_date }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table analysis-table table-bordered export-table" data-year="{{ year }}">
+                        <thead>
+                            <tr>
+                                <th class="category-header">分类/月份</th>
+                                {% for month in range(1,13) %}
+                                <th class="text-center month-cell">{{ month }}月</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in year_data.categories %}
+                            <tr>
+                                <th scope="row" class="fixed-column category-header">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-tag me-2"></i>
+                                        {{ category }}
+                                    </div>
+                                </th>
+                                {% for month in range(1,13) %}
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        {% for action in year_data.actions %}
+                                        {% set qty = year_data.months[month].categories[category][action] %}
+                                        {% if qty > 0 %}
+                                        <div>
+                                            <span class="action-badge {% if action == '入库' %}action-in{% elif action == '出库' %}action-out{% else %}action-check{% endif %}">
+                                                <i class="bi 
+                                                    {% if action == '入库' %}bi-box-arrow-in-down
+                                                    {% elif action == '出库' %}bi-box-arrow-up
+                                                    {% else %}bi-clipboard-check
+                                                    {% endif %} me-1"></i>
+                                                {{ action }}: {{ qty }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                            <tr class="summary-row">
+                                <td class="fixed-column fw-bold">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calculator me-2"></i>
+                                        月度合计
+                                    </div>
+                                </td>
+                                {% for month in range(1,13) %}
+                                <td class="fw-bold month-total">
+                                    {{ year_data.months[month].total }}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 年度趋势图 -->
+                <div class="mt-4">
+                    <h4 class="mb-3"><i class="bi bi-bar-chart-line me-2"></i>年度运营趋势</h4>
+                    <div class="chart-container">
+                        <canvas id="chart-{{ year }}"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 年度总结 -->
+                <div class="alert alert-info mt-4">
+                    <h5><i class="bi bi-lightbulb me-2"></i>年度分析总结</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-arrow-up-circle text-success fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最高入库月</div>
+                                    <div>{{ year_data.max_in_month }}月: {{ year_data.max_in_value }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-arrow-down-circle text-warning fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最高出库月</div>
+                                    <div>{{ year_data.max_out_month }}月: {{ year_data.max_out_value }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-star text-primary fs-4 me-2"></i>
+                                <div>
+                                    <div class="fw-medium">最活跃分类</div>
+                                    <div>{{ year_data.most_active_category }} ({{ year_data.most_active_value }})</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 分类详情 -->
+                    <div class="mt-3">
+                        <h6>分类详情分析</h6>
+                        <div class="row">
+                            {% for category, stats in year_data.category_stats.items() %}
+                            <div class="col-md-3 mb-2">
+                                <div class="d-flex">
+                                    <span class="badge bg-light text-dark me-2">{{ category }}</span>
+                                    <span class="text-success">入库:{{ stats.in }}</span>
+                                    <span class="text-warning ms-2">出库:{{ stats.out }}</span>
+                                    <span class="text-danger ms-2">盘点:{{ stats.check }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="alert alert-warning text-center py-5">
+            <i class="bi bi-exclamation-circle display-4 d-block mb-3"></i>
+            <h4>暂无年度对比数据</h4>
+            <p class="mb-0">请调整筛选条件或添加新数据</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 分析说明 -->
+    <div class="analysis-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4><i class="bi bi-info-circle me-2"></i>分析说明</h4>
+            <button class="btn btn-sm btn-outline-secondary" id="toggleHelp">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        <div id="helpContent">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center">
+                    <i class="bi bi-grid-3x3 text-primary me-3"></i>
+                    <div>
+                        <strong>表格结构：</strong> 横向展示1-12个月份数据，纵向展示不同化学品分类
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="action-badge action-in me-3"></span>
+                    <div>
+                        <strong>入库数据：</strong> 使用绿色标签显示
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="action-badge action-out me-3"></span>
+                    <div>
+                        <strong>出库数据：</strong> 使用黄色标签显示
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <span class="action-badge action-check me-3"></span>
+                    <div>
+                        <strong>盘点数据：</strong> 使用红色标签显示
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <i class="bi bi-graph-up text-info me-3"></i>
+                    <div>
+                        <strong>月度合计：</strong> 蓝色显示月度净库存（入库-出库-盘点）
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <i class="bi bi-arrows-expand text-secondary me-3"></i>
+                    <div>
+                        <strong>数据查看：</strong> 支持横向滚动查看完整数据，左侧分类固定
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <i class="bi bi-download text-success me-3"></i>
+                    <div>
+                        <strong>数据导出：</strong> 点击右上角导出按钮可下载完整年度数据
+                    </div>
+                </li>
+                <li class="list-group-item d-flex align-items-center">
+                    <i class="bi bi-calendar-range text-warning me-3"></i>
+                    <div>
+                        <strong>全部年度：</strong> 新增"全部年度"选项，展示所有年份汇总数据
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 导出选项弹窗 -->
+    <div class="export-options" id="exportOptions">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-spreadsheet me-2"></i>导出选项</h5>
+            <button type="button" class="btn-close" aria-label="Close" id="closeExport"></button>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label fw-medium">导出格式</label>
+            <select class="form-select" id="exportFormat">
+                <option value="excel">Excel (XLSX)</option>
+                <option value="csv">CSV 格式</option>
+            </select>
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label fw-medium">导出范围</label>
+            <select class="form-select" id="exportScope">
+                <option value="current">当前年度数据</option>
+                <option value="all">全部年度数据</option>
+            </select>
+        </div>
+        
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary" id="confirmExport">
+                <i class="bi bi-file-earmark-arrow-down me-2"></i>确认导出
+            </button>
+        </div>
+    </div>
+    
+    <div class="export-overlay" id="exportOverlay"></div>
+
+    <div class="scroll-indicator" id="scrollTopBtn" title="回到顶部">
+        <i class="bi bi-arrow-up"></i>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 初始化页面功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 年度标签切换
+            const yearTabs = document.querySelectorAll('.year-tab');
+            yearTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const year = this.getAttribute('data-year');
+                    
+                    // 更新标签状态
+                    yearTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 显示对应年度内容
+                    document.querySelectorAll('.year-section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    document.getElementById(`year-${year}`).style.display = 'block';
+                    
+                    // 重绘图表
+                    initializeChartForYear(year);
+                });
+            });
+            
+            // 滚动到顶部按钮
+            const scrollTopBtn = document.getElementById('scrollTopBtn');
+            scrollTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            
+            // 显示/隐藏帮助内容
+            const toggleHelp = document.getElementById('toggleHelp');
+            const helpContent = document.getElementById('helpContent');
+            toggleHelp.addEventListener('click', function() {
+                const isCollapsed = helpContent.style.display === 'none' || helpContent.style.display === '';
+                helpContent.style.display = isCollapsed ? 'block' : 'none';
+                this.innerHTML = isCollapsed ? 
+                    '<i class="bi bi-chevron-up"></i>' : 
+                    '<i class="bi bi-chevron-down"></i>';
+            });
+            
+            // 初始化年度图表
+            initializeCharts();
+            
+            // 导出功能
+            const exportBtn = document.getElementById('exportBtn');
+            const exportOptions = document.getElementById('exportOptions');
+            const exportOverlay = document.getElementById('exportOverlay');
+            const closeExport = document.getElementById('closeExport');
+            const confirmExport = document.getElementById('confirmExport');
+            
+            exportBtn.addEventListener('click', function() {
+                exportOptions.style.display = 'block';
+                exportOverlay.style.display = 'block';
+            });
+            
+            closeExport.addEventListener('click', function() {
+                exportOptions.style.display = 'none';
+                exportOverlay.style.display = 'none';
+            });
+            
+            exportOverlay.addEventListener('click', function() {
+                exportOptions.style.display = 'none';
+                exportOverlay.style.display = 'none';
+            });
+            
+            confirmExport.addEventListener('click', function() {
+                const format = document.getElementById('exportFormat').value;
+                const scope = document.getElementById('exportScope').value;
+                
+                if (scope === 'current') {
+                    // 获取当前显示的年份
+                    const activeTab = document.querySelector('.year-tab.active');
+                    if (activeTab) {
+                        const year = activeTab.getAttribute('data-year');
+                        exportCurrentYearData(year, format);
+                    }
+                } else {
+                    exportAllYearsData(format);
+                }
+                
+                // 关闭弹窗
+                exportOptions.style.display = 'none';
+                exportOverlay.style.display = 'none';
+            });
+            
+            // 初始化页面后显示第一个图表
+            const firstYear = document.querySelector('.year-tab.active')?.getAttribute('data-year');
+            if (firstYear) initializeChartForYear(firstYear);
+        });
+        
+        // 初始化年度图表
+        function initializeCharts() {
+            // 初始化全部年度图表
+            initializeChartForYear('all');
+            
+            // 初始化各年度图表
+            document.querySelectorAll('.year-section').forEach(section => {
+                if (section.id !== 'year-all') {
+                    const year = section.id.replace('year-', '');
+                    initializeChartForYear(year);
+                }
+            });
+        }
+        
+        // 为特定年份初始化图表
+        function initializeChartForYear(year) {
+            const ctx = document.getElementById(`chart-${year}`)?.getContext('2d');
+            if (!ctx) return;
+            
+            // 如果图表已存在则销毁
+            if (ctx.chart) ctx.chart.destroy();
+            
+            // 获取表格数据
+            const table = document.querySelector(`#year-${year} .export-table`);
+            if (!table) return;
+            
+            // 从表格中提取数据
+            const inData = [], outData = [], checkData = [], netData = [], labels = [];
+            
+            // 查找月度合计行
+            const summaryRow = table.querySelector('.summary-row');
+            if (summaryRow) {
+                const monthCells = summaryRow.querySelectorAll('td');
+                for (let i = 0; i < 12; i++) {
+                    labels.push(`${i+1}月`);
+                    inData.push(0);
+                    outData.push(0);
+                    checkData.push(0);
+                }
+                
+                // 遍历分类行
+                const categoryRows = table.querySelectorAll('tbody tr:not(.summary-row)');
+                categoryRows.forEach(row => {
+                    const categoryName = row.querySelector('.fixed-column')?.textContent.trim();
+                    const monthCells = row.querySelectorAll('td');
+                    
+                    for (let i = 0; i < 12; i++) {
+                        const badges = monthCells[i].querySelectorAll('.action-badge');
+                        badges.forEach(badge => {
+                            const text = badge.textContent;
+                            const value = parseInt(text.match(/\d+/)[0]);
+                            
+                            if (badge.classList.contains('action-in')) {
+                                inData[i] += value;
+                            } else if (badge.classList.contains('action-out')) {
+                                outData[i] += value;
+                            } else if (badge.classList.contains('action-check')) {
+                                checkData[i] += value;
+                            }
+                        });
+                    }
+                });
+                
+                // 计算净库存（入库 - 出库 - 盘点）
+                for (let i = 0; i < 12; i++) {
+                    netData.push(inData[i] - outData[i] - checkData[i]);
+                }
+            }
+            
+            // 创建图表
+            ctx.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '入库量',
+                            data: inData,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: '出库量',
+                            data: outData,
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: '盘点量',
+                            data: checkData,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: '净库存',
+                            data: netData,
+                            borderColor: '#4361ee',
+                            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 15,
+                                padding: 20
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${year === 'all' ? '全部年度' : year + '年'}化学品运营趋势图`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            },
+                            title: {
+                                display: true,
+                                text: '数量'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: '月份'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 导出当前年度数据
+        function exportCurrentYearData(year, format) {
+            const table = document.querySelector(`.year-section#year-${year} .export-table`);
+            if (!table) return;
+            
+            let exportData = [];
+            
+            // 表头
+            const headers = [];
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                headers.push(cell.textContent.trim());
+            });
+            exportData.push(headers);
+            
+            // 表格内容
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td, th.fixed-column');
+                
+                cells.forEach((cell, index) => {
+                    // 第一列是分类名称
+                    if (index === 0) {
+                        rowData.push(cell.textContent.trim());
+                    } else {
+                        // 处理入/出库/盘点数据
+                        const inBadge = cell.querySelector('.action-in');
+                        const outBadge = cell.querySelector('.action-out');
+                        const checkBadge = cell.querySelector('.action-check');
+                        
+                        let inValue = 0;
+                        let outValue = 0;
+                        let checkValue = 0;
+                        
+                        if (inBadge) {
+                            const text = inBadge.textContent;
+                            inValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        if (outBadge) {
+                            const text = outBadge.textContent;
+                            outValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        if (checkBadge) {
+                            const text = checkBadge.textContent;
+                            checkValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        // 月度合计行特殊处理
+                        if (row.classList.contains('summary-row')) {
+                            rowData.push(cell.textContent.trim());
+                        } else {
+                            rowData.push(`入库:${inValue}/出库:${outValue}/盘点:${checkValue}`);
+                        }
+                    }
+                });
+                
+                exportData.push(rowData);
+            });
+            
+            // 生成工作簿
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            // 设置表头样式
+            const headerStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                fill: { fgColor: { rgb: "4361EE" } },
+                alignment: { horizontal: "center" }
+            };
+            
+            // 应用表头样式
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell_address = { c: C, r: 0 };
+                const cell_ref = XLSX.utils.encode_cell(cell_address);
+                ws[cell_ref].s = headerStyle;
+            }
+            
+            // 设置文件名
+            const fileName = `化学品管理系统_${year === 'all' ? '全部年度' : year + '年度'}数据.${format === 'csv' ? 'csv' : 'xlsx'}`;
+            
+            if (format === 'csv') {
+                // CSV导出
+                const csv = XLSX.utils.sheet_to_csv(ws);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                link.click();
+            } else {
+                // Excel导出
+                XLSX.utils.book_append_sheet(wb, ws, `${year === 'all' ? '全部年度' : year + '年度'}数据`);
+                XLSX.writeFile(wb, fileName);
+            }
+        }
+        
+        // 导出所有年度数据
+        function exportAllYearsData(format) {
+            const wb = XLSX.utils.book_new();
+            
+            // 导出全部年度数据
+            exportYearToWorkbook('all', wb);
+            
+            // 导出各年度数据
+            document.querySelectorAll('.year-tab:not([data-year="all"])').forEach(tab => {
+                const year = tab.getAttribute('data-year');
+                exportYearToWorkbook(year, wb);
+            });
+            
+            // 导出文件
+            const fileName = `化学品管理系统_全部年度数据.${format === 'csv' ? 'csv' : 'xlsx'}`;
+            if (format === 'csv') {
+                // CSV导出比较复杂，这里只实现Excel导出
+                alert('全部年度数据导出仅支持Excel格式');
+                XLSX.writeFile(wb, fileName);
+            } else {
+                XLSX.writeFile(wb, fileName);
+            }
+        }
+        
+        // 辅助函数：将年度数据添加到工作簿
+        function exportYearToWorkbook(year, wb) {
+            const table = document.querySelector(`#year-${year} .export-table`);
+            if (!table) return;
+            
+            let exportData = [];
+            
+            // 表头
+            const headers = [];
+            const headerCells = table.querySelectorAll('thead th');
+            headerCells.forEach(cell => {
+                headers.push(cell.textContent.trim());
+            });
+            exportData.push(headers);
+            
+            // 表格内容
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('td, th.fixed-column');
+                
+                cells.forEach((cell, index) => {
+                    if (index === 0) {
+                        rowData.push(cell.textContent.trim());
+                    } else {
+                        const inBadge = cell.querySelector('.action-in');
+                        const outBadge = cell.querySelector('.action-out');
+                        const checkBadge = cell.querySelector('.action-check');
+                        
+                        let inValue = 0;
+                        let outValue = 0;
+                        let checkValue = 0;
+                        
+                        if (inBadge) {
+                            const text = inBadge.textContent;
+                            inValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        if (outBadge) {
+                            const text = outBadge.textContent;
+                            outValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        if (checkBadge) {
+                            const text = checkBadge.textContent;
+                            checkValue = parseInt(text.split(':')[1].trim()) || 0;
+                        }
+                        
+                        if (row.classList.contains('summary-row')) {
+                            rowData.push(cell.textContent.trim());
+                        } else {
+                            rowData.push(`入库:${inValue}/出库:${outValue}/盘点:${checkValue}`);
+                        }
+                    }
+                });
+                
+                exportData.push(rowData);
+            });
+            
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, `${year === 'all' ? '全部年度' : year + '年度'}数据`);
+        }
+    </script>
+</body>
+</html>

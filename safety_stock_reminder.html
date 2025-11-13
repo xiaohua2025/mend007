@@ -1,0 +1,695 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>库存预警 - 化学品管理系统</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --status-critical: #dc3545;
+            --status-warning: #ffc107;
+            --status-normal: #198754;
+            --status-low: #fd7e14;
+        }
+        
+        .card-counter {
+            transition: all 0.3s ease;
+        }
+        
+        .card-counter:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .stock-status {
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+            min-width: 90px;
+            text-align: center;
+        }
+        
+        .status-critical {
+            background-color: var(--status-critical);
+            color: white;
+        }
+        
+        .status-warning {
+            background-color: var(--status-warning);
+            color: black;
+        }
+        
+        .status-low {
+            background-color: var(--status-low);
+            color: white;
+        }
+        
+        .status-normal {
+            background-color: var(--status-normal);
+            color: white;
+        }
+        
+        .hover-highlight:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            max-width: 150px;
+            height: 24px;
+        }
+        
+        .progress-bar-critical {
+            background-color: var(--status-critical);
+        }
+        
+        .progress-bar-warning {
+            background-color: var(--status-warning);
+        }
+        
+        .progress-bar-low {
+            background-color: var(--status-low);
+        }
+        
+        .btn-action {
+            min-width: 90px;
+        }
+        
+        .table th {
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .table th:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+        
+        .sort-indicator {
+            margin-left: 5px;
+            font-size: 0.8em;
+            opacity: 0.6;
+        }
+        
+        .supplier-badge {
+            font-size: 0.8em;
+        }
+        
+        .expiration-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 0.7em;
+            opacity: 0.8;
+        }
+        
+        .batch-highlight {
+            font-weight: 500;
+            background-color: rgba(108, 117, 125, 0.1);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 992px) {
+            .table-responsive {
+                border: 0;
+            }
+            
+            .table thead {
+                display: none;
+            }
+            
+            .table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #dee2e6;
+                border-radius: 0.25rem;
+            }
+            
+            .table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border: none;
+                border-bottom: 1px solid #dee2e6;
+                position: relative;
+                padding-left: 50%;
+            }
+            
+            .table td:last-child {
+                border-bottom: 0;
+            }
+            
+            .table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 45%;
+                padding-left: 1rem;
+                font-weight: bold;
+            }
+            
+            .table td .batch-highlight {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+            }
+            
+            .card-counter {
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="container mt-4">
+    <!-- 页面标题和操作区 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>库存预警监控
+            </h2>
+            <nav aria-label="breadcrumb" class="mt-2">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">库存预警</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>返回首页
+            </a>
+        </div>
+    </div>
+
+    <!-- 统计信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-danger card-counter">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-muted">预警总数</h5>
+                            <p class="card-text display-5 text-danger">{{ chemicals|length }}</p>
+                        </div>
+                        <i class="bi bi-exclamation-triangle display-4 text-danger opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-warning card-counter">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-muted">最大库存缺口</h5>
+                            <p class="card-text display-5 text-warning">{{ max_deficit }}</p>
+                        </div>
+                        <i class="bi bi-box-seam display-4 text-warning opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-info card-counter">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-muted">即将过期</h5>
+                            <p class="card-text display-5 text-info">{{ expiring_soon_count }}</p>
+                        </div>
+                        <i class="bi bi-clock display-4 text-info opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-success card-counter">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title text-muted">最后更新</h5>
+                            <p class="card-text display-6 text-success" id="currentDate"></p>
+                        </div>
+                        <i class="bi bi-arrow-repeat display-4 text-success opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 搜索和筛选区域 -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel me-2"></i>筛选条件
+            </h5>
+        </div>
+        <div class="card-body">
+            <form class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchInput" class="form-label">化学品名称/代码</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="输入名称或代码...">
+                </div>
+                <div class="col-md-4">
+                    <label for="statusFilter" class="form-label">库存状态</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="all">全部状态</option>
+                        <option value="critical">严重短缺 (>1件)</option>
+                        <option value="warning">一般短缺 (2-3件)</option>
+                        <option value="low">轻微短缺 (<4件)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="locationFilter" class="form-label">存储位置</label>
+                    <select class="form-select" id="locationFilter">
+                        <option value="all">全部位置</option>
+                        <option value="A">A区</option>
+                        <option value="B">B区</option>
+                        <option value="C">C区</option>
+                    </select>
+                </div>
+                <div class="col-md-12 d-flex justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-arrow-counterclockwise"></i> 重置
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> 应用筛选
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-list-columns-reverse me-2"></i>库存预警清单
+            </h5>
+            <div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-danger" onclick="exportAlertList()">
+                        <i class="bi bi-file-earmark-excel"></i> 导出预警清单
+                    </button>
+                    <button class="btn btn-outline-success" onclick="refreshData()">
+                        <i class="bi bi-arrow-repeat"></i> 刷新
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-sort="product_code">
+                                商品代码 <span class="sort-indicator">▼</span>
+                            </th>
+                            <th data-sort="name">
+                                化学品名称 <span class="sort-indicator">▼</span>
+                            </th>
+                            <th>规格型号</th>
+                            <th data-sort="location">
+                                存储位置 <span class="sort-indicator">▼</span>
+                            </th>
+                            <th class="text-end">当前库存</th>
+                            <th class="text-end">安全库存</th>
+                            <th class="text-center">库存缺口</th>
+                            <th class="text-center">库存状态</th>
+                            <th class="text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chemical in chemicals %}
+                        <tr class="hover-highlight" onclick="window.location='{{ url_for('edit_chemical', id=chemical.id) }}'">
+                            <td data-label="商品代码">
+                                <div class="fw-bold">{{ chemical.product_code }}</div>
+                                <span class="text-muted small batch-highlight">{{ chemical.batch_number }}</span>
+                            </td>
+                            <td data-label="化学品名称">
+                                <div class="fw-bold">{{ chemical.name }}</div>
+                                <div class="small text-muted mt-1">
+                                    <span class="supplier-badge badge bg-secondary">{{ chemical.supplier }}</span>
+                                </div>
+                            </td>
+                            <td data-label="规格型号">
+                                <div>{{ chemical.specification }}</div>
+                                <small class="text-muted">{{ chemical.model }}</small>
+                            </td>
+                            <td data-label="存储位置">
+                                <div>{{ chemical.location }}</div>
+                                <div class="small text-muted">{{ chemical.warehouse_location }}</div>
+                            </td>
+                            <td data-label="当前库存" class="text-end fw-bold">
+                                {{ chemical.total_stock }}
+                                <span class="text-muted small">/{{ chemical.quantity }}</span>
+                            </td>
+                            <td data-label="安全库存" class="text-end">
+                                {{ chemical.safety_stock }}
+                            </td>
+                            <td data-label="库存缺口">
+                                <div class="progress-container mx-auto">
+                                    <div class="progress" style="height: 20px;">
+                                        {% set deficit = chemical.safety_stock - chemical.total_stock %}
+                                        {% set deficit_percent = (deficit / chemical.safety_stock) * 100 %}
+                                        <div class="progress-bar 
+                                            {% if deficit > 50 %}progress-bar-critical
+                                            {% elif deficit > 20 %}progress-bar-warning
+                                            {% else %}progress-bar-low{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ deficit_percent }}%"
+                                             aria-valuenow="{{ chemical.total_stock }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="{{ chemical.safety_stock }}">
+                                        </div>
+                                    </div>
+                                    <div class="text-center small mt-1">
+                                        <strong>{{ deficit }}</strong> 件短缺
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="库存状态" class="text-center">
+                                {% set deficit = chemical.safety_stock - chemical.total_stock %}
+                                <span class="stock-status 
+                                    {% if deficit > 50 %}status-critical
+                                    {% elif deficit > 20 %}status-warning
+                                    {% else %}status-low{% endif %}">
+                                    {% if deficit > 50 %}严重短缺
+                                    {% elif deficit > 20 %}一般短缺
+                                    {% else %}轻微短缺{% endif %}
+                                </span>
+                                {% if chemical.days_remaining is not none and chemical.days_remaining < 30 %}
+                                <div class="mt-1 small">
+                                    <i class="bi bi-clock text-warning"></i> 
+                                    <span class="text-warning">{{ chemical.days_remaining }}天后过期</span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td data-label="操作" class="text-center">
+                                <div class="btn-group">
+                                    <a href="{{ url_for('edit_chemical', id=chemical.id) }}"
+                                       class="btn btn-sm btn-outline-primary btn-action">
+                                        <i class="bi bi-plus-circle"></i> 补货
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary btn-action"
+                                            onclick="event.stopPropagation();showDetails({{ chemical.id }})">
+                                        <i class="bi bi-info-circle"></i> 详情
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-check-circle-fill text-success display-5 mb-3"></i>
+                                <h5>当前没有库存预警</h5>
+                                <p class="text-muted mt-2">所有化学品库存均满足安全库存要求</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center bg-light">
+            <div class="text-muted">
+                显示 <strong>{{ chemicals|length }}</strong> 条预警记录
+            </div>
+            <div class="text-muted">
+                <i class="bi bi-arrow-repeat"></i> 数据更新于 <span id="refreshTime"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">
+                        <i class="bi bi-info-circle me-2"></i>化学品详情
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">基本信息</div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">商品代码：</dt>
+                                        <dd class="col-sm-8" id="modal-product-code"></dd>
+                                        
+                                        <dt class="col-sm-4">化学品名称：</dt>
+                                        <dd class="col-sm-8" id="modal-name"></dd>
+                                        
+                                        <dt class="col-sm-4">规格型号：</dt>
+                                        <dd class="col-sm-8" id="modal-specification"></dd>
+                                        
+                                        <dt class="col-sm-4">存储位置：</dt>
+                                        <dd class="col-sm-8" id="modal-location"></dd>
+                                        
+                                        <dt class="col-sm-4">仓库位置：</dt>
+                                        <dd class="col-sm-8" id="modal-warehouse-location"></dd>
+                                        
+                                        <dt class="col-sm-4">CAS编号：</dt>
+                                        <dd class="col-sm-8" id="modal-cas-number"></dd>
+                                        
+                                        <dt class="col-sm-4">监管类别：</dt>
+                                        <dd class="col-sm-8" id="modal-regulatory-category"></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">库存信息</div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">当前库存：</dt>
+                                        <dd class="col-sm-8" id="modal-total-stock"></dd>
+                                        
+                                        <dt class="col-sm-4">安全库存：</dt>
+                                        <dd class="col-sm-8" id="modal-safety-stock"></dd>
+                                        
+                                        <dt class="col-sm-4">库存缺口：</dt>
+                                        <dd class="col-sm-8">
+                                            <span id="modal-stock-deficit" class="stock-status status-warning">0 件短缺</span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">生产日期：</dt>
+                                        <dd class="col-sm-8" id="modal-production-date"></dd>
+                                        
+                                        <dt class="col-sm-4">过期日期：</dt>
+                                        <dd class="col-sm-8">
+                                            <span id="modal-expiration-date"></span>
+                                            <span id="modal-expiration-days" class="ms-2 badge bg-warning text-dark"></span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">批次号：</dt>
+                                        <dd class="col-sm-8" id="modal-batch-number"></dd>
+                                        
+                                        <dt class="col-sm-4">供应商：</dt>
+                                        <dd class="col-sm-8" id="modal-supplier"></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-light">附加信息</div>
+                                <div class="card-body">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-2">生产商：</dt>
+                                        <dd class="col-sm-10" id="modal-manufacturer"></dd>
+                                        
+                                        <dt class="col-sm-2">操作员：</dt>
+                                        <dd class="col-sm-4" id="modal-operator"></dd>
+                                        
+                                        <dt class="col-sm-2">确认人：</dt>
+                                        <dd class="col-sm-4" id="modal-confirmer"></dd>
+                                        
+                                        <dt class="col-sm-2">状态：</dt>
+                                        <dd class="col-sm-4" id="modal-status"></dd>
+                                        
+                                        <dt class="col-sm-2">耗材类别：</dt>
+                                        <dd class="col-sm-4" id="modal-consumable-category"></dd>
+                                        
+                                        <dt class="col-sm-2">备注：</dt>
+                                        <dd class="col-sm-10" id="modal-notes"></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i>关闭
+                    </button>
+                    <a href="#" class="btn btn-primary" id="modal-edit-link">
+                        <i class="bi bi-pencil me-1"></i>编辑化学品
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入Bootstrap JS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 自动更新日期时间
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = 
+                now.toLocaleDateString('zh-CN') + ' ' + now.toLocaleTimeString('zh-CN');
+            document.getElementById('refreshTime').textContent = 
+                now.toLocaleTimeString('zh-CN');
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // 添加排序功能
+            document.querySelectorAll('th[data-sort]').forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortField = header.getAttribute('data-sort');
+                    sortTable(sortField);
+                });
+            });
+        });
+
+        // 导出功能
+        function exportAlertList() {
+            // 显示加载提示
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed top-0 end-0 p-3';
+            toast.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-header">
+                        <strong class="me-auto">导出中</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        正在生成安全库存预警报告...
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            // 执行导出
+            window.location.href = '/export_safety_stock_alerts';
+            
+            // 3秒后移除提示
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // 刷新数据
+        function refreshData() {
+            // 显示加载提示
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.innerHTML = `
+                <div class="toast show" role="alert">
+                    <div class="toast-body">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        正在刷新库存预警数据...
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            // 模拟刷新（实际应用中这里会是AJAX请求）
+            setTimeout(() => {
+                toast.remove();
+                window.location.reload();
+            }, 1500);
+        }
+        
+        // 排序功能
+        function sortTable(field) {
+            console.log(`Sorting by ${field}`);
+            // 实际应用中这里会是AJAX请求或前端排序
+            alert(`按${field}字段排序功能需要后端支持`);
+        }
+
+        // 详情查看
+        function showDetails(id) {
+            fetch(`/chemical_details/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 填充数据到模态框
+                    document.getElementById('modal-product-code').textContent = data.product_code;
+                    document.getElementById('modal-name').textContent = data.name;
+                    document.getElementById('modal-specification').textContent = data.specification;
+                    document.getElementById('modal-location').textContent = data.location;
+                    document.getElementById('modal-warehouse-location').textContent = data.warehouse_location || 'N/A';
+                    document.getElementById('modal-cas-number').textContent = data.cas_number || 'N/A';
+                    document.getElementById('modal-regulatory-category').textContent = data.regulatory_category || 'N/A';
+                    document.getElementById('modal-manufacturer').textContent = data.manufacturer;
+                    document.getElementById('modal-batch-number').textContent = data.batch_number;
+                    document.getElementById('modal-production-date').textContent = data.production_date || 'N/A';
+                    document.getElementById('modal-expiration-date').textContent = data.expiration_date || 'N/A';
+                    
+                    // 计算并显示过期天数
+                    if (data.expiration_date && data.days_remaining !== null) {
+                        const daysRemaining = parseInt(data.days_remaining);
+                        const expirationBadge = document.getElementById('modal-expiration-days');
+                        expirationBadge.textContent = `${daysRemaining}天后过期`;
+                        
+                        if (daysRemaining < 30) {
+                            expirationBadge.className = 'ms-2 badge bg-warning text-dark';
+                        } else if (daysRemaining < 15) {
+                            expirationBadge.className = 'ms-2 badge bg-danger text-white';
+                        } else {
+                            expirationBadge.className = 'ms-2 badge bg-secondary text-white';
+                        }
+                    }
+                    
+                    document.getElementById('modal-total-stock').textContent = data.total_stock;
+                    document.getElementById('modal-safety-stock').textContent = data.safety_stock;
+                    
+                    // 计算库存缺口
+                    const deficit = data.safety_stock - data.total_stock;
+                    const deficitElement = document.getElementById('modal-stock-deficit');
+                    deficitElement.textContent = `${deficit} 件短缺`;
+                    
+                    // 根据缺口大小设置样式
+                    if (deficit > 50) {
+                        deficitElement.className = 'stock-status status-critical';
+                    } else if (deficit > 20) {
+                        deficitElement.className = 'stock-status status-warning';
+                    } else {
+                        deficitElement.className = 'stock-status status-low';
+                    }
+                    
+                    document.getElementById('modal-supplier').textContent = data.supplier;
+                    document.getElementById('modal-operator').textContent = data.operator;
+                    document.getElementById('modal-confirmer').textContent = data.confirmer;
+                    document.getElementById('modal-status').textContent = data.status;
+                    document.getElementById('modal-consumable-category').textContent = data.consumable_category || 'N/A';
+                    document.getElementById('modal-notes').textContent = data.notes || '无备注';
+                    
+                    // 设置编辑链接
+                    document.getElementById('modal-edit-link').href = `/edit/${id}`;
+                    
+                    // 显示模态框
+                    new bootstrap.Modal(document.getElementById('detailModal')).show();
+                })
+                .catch(() => alert('获取详情失败'));
+        }
+    </script>
+</body>
+</html>

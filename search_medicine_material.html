@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级搜索 - 药品与物资检查表</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container py-4">
+        <h2 class="mb-4"><i class="fas fa-search me-2"></i>高级搜索</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('search_medicine_material') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">物品名称</label>
+                            <input type="text" class="form-control" name="name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">物品代码</label>
+                            <input type="text" class="form-control" name="item_code">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">物品类型</label>
+                            <select class="form-select" name="item_type">
+                                <option value="">所有类型</option>
+                                <option value="药品">药品</option>
+                                <option value="物资">物资</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">物品类别</label>
+                            <input type="text" class="form-control" name="category">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">批次号</label>
+                            <input type="text" class="form-control" name="batch_number">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" name="status">
+                                <option value="">所有状态</option>
+                                <option value="正常">正常</option>
+                                <option value="即将过期">即将过期</option>
+                                <option value="过期">过期</option>
+                                <option value="不足">不足</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">失效日期从</label>
+                            <input type="date" class="form-control" name="expiration_date_from">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">失效日期至</label>
+                            <input type="date" class="form-control" name="expiration_date_to">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">厂家</label>
+                            <input type="text" class="form-control" name="manufacturer">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">供应商</label>
+                            <input type="text" class="form-control" name="supplier">
+                        </div>
+                        
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i> 搜索
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-1"></i> 重置
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

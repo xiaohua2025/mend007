@@ -1,0 +1,829 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if equipment %}编辑设备{% else %}添加设备{% endif %} - 化学品管理系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            background-color: #f8f9fa;
+            padding: 15px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid #dee2e6;
+        }
+
+        .form-section h4 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+            color: #4361ee;
+        }
+
+        .row {
+            margin-bottom: 0.8rem;
+        }
+
+        .form-control, .form-select {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .form-label {
+            margin-bottom: 0.3rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .font-controls {
+            position: static;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 10px;
+        }
+
+        .form-text {
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+            color: #6c757d;
+        }
+
+        .required-label::after {
+            content: "*";
+            color: #dc3545;
+            margin-left: 3px;
+        }
+
+        .invalid-feedback {
+            font-size: 0.75rem;
+            margin-top: 0.1rem;
+        }
+
+        .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.875rem;
+            margin: 5px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border: 2px dashed #dee2e6;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        
+        .file-preview {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .file-preview .btn {
+            margin-left: 10px;
+        }
+        
+        .file-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-normal { background-color: #28a745; }
+        .status-pending { background-color: #ffc107; }
+        .status-repairing { background-color: #dc3545; }
+        .status-disabled { background-color: #6c757d; }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: #4361ee;
+            font-size: 1.2rem;
+        }
+        
+        .form-check-input {
+            margin-top: 0.15rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+            max-width: 200px;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+            .container {
+                margin-top: 10px;
+            }
+            .form-control, .form-select {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.65rem;
+            }
+            .form-section {
+                padding: 15px;
+            }
+            .image-preview {
+                max-width: 100%;
+            }
+            .action-buttons {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .action-buttons .btn {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex flex-column mb-4">
+            <h2 class="mb-3">
+                <i class="bi bi-{% if equipment %}gear{% else %}plus-circle{% endif %}"></i>
+                {% if equipment %}编辑设备信息{% else %}添加新设备{% endif %}
+            </h2>
+            <div class="font-controls">
+                <button class="btn btn-sm btn-outline-secondary" onclick="adjustFontSize(-1)">
+                    <i class="bi bi-dash-lg"></i> 减小字体
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="adjustFontSize(1)">
+                    <i class="bi bi-plus-lg"></i> 增大字体
+                </button>
+            </div>
+        </div>
+
+        <!-- Flash消息显示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% if equipment %}
+                <input type="hidden" name="id" value="{{ equipment.id }}">
+            {% endif %}
+            
+            <!-- ================== 基本信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-info-circle"></i>
+                    <h4 class="mb-0">基本信息</h4>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required-label">固定资产编号</label>
+                        <input type="text" class="form-control" name="fixed_asset_id" 
+                               value="{{ equipment.fixed_asset_id if equipment else '' }}" required>
+                        <div class="invalid-feedback">请输入固定资产编号</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required-label">设备管理编号</label>
+                        <input type="text" class="form-control" name="equipment_manage_id" 
+                               value="{{ equipment.equipment_manage_id if equipment else '' }}" required>
+                        <div class="invalid-feedback">请输入设备管理编号</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">自编号</label>
+                        <input type="text" class="form-control" name="self_number" 
+                               value="{{ equipment.self_number if equipment else '' }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">设备名称</label>
+                        <input type="text" class="form-control" name="name" 
+                               value="{{ equipment.name if equipment else '' }}" required>
+                        <div class="invalid-feedback">请输入设备名称</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">设备型号</label>
+                        <input type="text" class="form-control" name="model" 
+                               value="{{ equipment.model if equipment else '' }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">实验室</label>
+                        <input type="text" class="form-control" name="laboratory" 
+                               value="{{ equipment.laboratory if equipment else '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">位置</label>
+                        <input type="text" class="form-control" name="location" 
+                               value="{{ equipment.location if equipment else '' }}">
+                    </div>
+ <div class="col-md-4 mb-3">
+                        <label class="form-label fw-medium">设备状态</label>
+<select class="form-select" name="status" required>
+    <option value="正常" {% if equipment and equipment.status == '正常' %}selected{% endif %}>正常</option>
+    <option value="待检" {% if equipment and equipment.status == '待检' %}selected{% endif %}>待检</option>
+    <option value="维修中" {% if equipment and equipment.status == '维修中' %}selected{% endif %}>维修中</option>
+    <option value="已经维修" {% if equipment and equipment.status == '已经维修' %}selected{% endif %}>已经维修</option>
+    <option value="停用" {% if equipment and equipment.status == '停用' %}selected{% endif %}>停用</option>
+    <option value="报废" {% if equipment and equipment.status == '报废' %}selected{% endif %}>报废</option>
+    <option value="报废中" {% if equipment and equipment.status == '报废中' %}selected{% endif %}>报废中</option>
+</select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="require_3q_cert" 
+                                   id="require_3q_cert" {% if equipment and equipment.require_3q_cert %}checked{% endif %}>
+                            <label class="form-check-label" for="require_3q_cert">
+                                需要3Q认证
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 使用信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-cpu"></i>
+                    <h4 class="mb-0">使用信息</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">用途</label>
+                        <textarea class="form-control" name="purpose" rows="2">{{ equipment.purpose if equipment else '' }}</textarea>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">使用信息</label>
+                        <textarea class="form-control" name="usage_info" rows="2">{{ equipment.usage_info if equipment else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 时间信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-calendar-date"></i>
+                    <h4 class="mb-0">时间信息</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">购买日期</label>
+                        <input type="date" class="form-control" name="purchase_date" 
+                               value="{{ equipment.purchase_date.strftime('%Y-%m-%d') if equipment and equipment.purchase_date else '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">最近检查日期</label>
+                        <input type="date" class="form-control" name="inspection_date" 
+                               value="{{ equipment.inspection_date.strftime('%Y-%m-%d') if equipment and equipment.inspection_date else '' }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">年检日期</label>
+                        <input type="date" class="form-control" name="annual_check_date" 
+                               value="{{ equipment.annual_check_date.strftime('%Y-%m-%d') if equipment and equipment.annual_check_date else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 资产信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-cash-coin"></i>
+                    <h4 class="mb-0">资产信息</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">购买金额</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" step="0.01" class="form-control" name="purchase_amount" 
+                                   value="{{ equipment.purchase_amount if equipment else '0' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">折旧价值</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" step="0.01" class="form-control" name="depreciated_value" 
+                                   value="{{ equipment.depreciated_value if equipment else '0' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+<!-- ================== 维修信息 ================== -->
+<div class="form-section">
+    <div class="section-title">
+        <i class="bi bi-tools"></i>
+        <h4 class="mb-0">维修信息</h4>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">故障日期</label>
+            <!-- 修复 name="fault_date" -->
+            <input type="date" class="form-control" name="fault_date" 
+                   value="{{ equipment.fault_date.strftime('%Y-%m-%d') if equipment and equipment.fault_date else '' }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">故障类别</label>
+            <input type="text" class="form-control" name="fault_category" 
+                   value="{{ equipment.fault_category if equipment else '' }}">
+        </div>
+        <div class="col-md-4 mb-3">
+            <label class="form-label">处理方法</label>
+            <!-- 修复 name="handling_method" -->
+            <input type="text" class="form-control" name="handling_method" 
+                   value="{{ equipment.handling_method if equipment else '' }}">
+        </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">解决方案</label>
+                        <textarea class="form-control" name="solution" rows="2">{{ equipment.solution if equipment else '' }}</textarea>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">处理结果</label>
+                        <textarea class="form-control" name="result" rows="2">{{ equipment.result if equipment else '' }}</textarea>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">完成日期</label>
+                        <input type="date" class="form-control" name="completion_date" 
+                               value="{{ equipment.completion_date.strftime('%Y-%m-%d') if equipment and equipment.completion_date else '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 人员信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-people"></i>
+                    <h4 class="mb-0">人员信息</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">操作员</label>
+                        <select class="form-select" name="operator" required>
+                            <option value=""></option>
+                            <option value="陈敬宏" {% if equipment and equipment.operator == '陈敬宏' %}selected{% endif %}>陈敬宏</option>
+                            <option value="萧冰莹" {% if equipment and equipment.operator == '萧冰莹' %}selected{% endif %}>萧冰莹</option>
+                            <option value="叶汉农" {% if equipment and equipment.operator == '叶汉农' %}selected{% endif %}>叶汉农</option>
+                            <option value="黄凤嫦" {% if equipment and equipment.operator == '黄凤嫦' %}selected{% endif %}>黄凤嫦</option>
+                            <option value="方洧勉" {% if equipment and equipment.operator == '方洧勉' %}selected{% endif %}>方洧勉</option>
+                            <option value="曾爱华" {% if equipment and equipment.operator == '曾爱华' %}selected{% endif %}>曾爱华</option>
+                            <option value="何咏瑜" {% if equipment and equipment.operator == '何咏瑜' %}selected{% endif %}>何咏瑜</option>
+                            <option value="许华文" {% if equipment and equipment.operator == '许华文' %}selected{% endif %}>许华文</option>
+                            <option value="周晓华" {% if equipment and equipment.operator == '周晓华' %}selected{% endif %}>周晓华</option>
+                            <option value="欧阳胜强" {% if equipment and equipment.operator == '欧阳胜强' %}selected{% endif %}>欧阳胜强</option>
+                            <option value="陈建华" {% if equipment and equipment.operator == '陈建华' %}selected{% endif %}>陈建华</option>
+                            <option value="骆锦强" {% if equipment and equipment.operator == '骆锦强' %}selected{% endif %}>骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择操作员</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">确认人</label>
+                        <select class="form-select" name="confirmer" required>
+                            <option value=""></option>
+                            <option value="陈敬宏" {% if equipment and equipment.confirmer == '陈敬宏' %}selected{% endif %}>陈敬宏</option>
+                            <option value="萧冰莹" {% if equipment and equipment.confirmer == '萧冰莹' %}selected{% endif %}>萧冰莹</option>
+                            <option value="叶汉农" {% if equipment and equipment.confirmer == '叶汉农' %}selected{% endif %}>叶汉农</option>
+                            <option value="黄凤嫦" {% if equipment and equipment.confirmer == '黄凤嫦' %}selected{% endif %}>黄凤嫦</option>
+                            <option value="方洧勉" {% if equipment and equipment.confirmer == '方洧勉' %}selected{% endif %}>方洧勉</option>
+                            <option value="曾爱华" {% if equipment and equipment.confirmer == '曾爱华' %}selected{% endif %}>曾爱华</option>
+                            <option value="何咏瑜" {% if equipment and equipment.confirmer == '何咏瑜' %}selected{% endif %}>何咏瑜</option>
+                            <option value="许华文" {% if equipment and equipment.confirmer == '许华文' %}selected{% endif %}>许华文</option>
+                            <option value="周晓华" {% if equipment and equipment.confirmer == '周晓华' %}selected{% endif %}>周晓华</option>
+                            <option value="欧阳胜强" {% if equipment and equipment.confirmer == '欧阳胜强' %}selected{% endif %}>欧阳胜强</option>
+                            <option value="陈建华" {% if equipment and equipment.confirmer == '陈建华' %}selected{% endif %}>陈建华</option>
+                            <option value="骆锦强" {% if equipment and equipment.confirmer == '骆锦强' %}selected{% endif %}>骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择确认人</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 图片附件 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-images"></i>
+                    <h4 class="mb-0">图片附件</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="file-label">设备图片</label>
+                        {% if equipment and equipment.equipment_image %}
+                            <div>
+                                <img src="{{ url_for('download_equipment_attachment', id=equipment.id, type='equipment_image') }}" 
+                                     alt="设备图片" class="image-preview">
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前图片</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="equipment_image" accept="image/*" onchange="previewImage(event, 'equipmentPreview')">
+                        <div id="equipmentPreview" class="mt-2" style="display:none;">
+                            <img id="previewEquipment" class="image-preview">
+                        </div>
+                        <div class="form-text">支持格式：PNG, JPG, JPEG, GIF（最大16MB）</div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="file-label">固定资产图片</label>
+                        {% if equipment and equipment.fixed_asset_image %}
+                            <div>
+                                <img src="{{ url_for('download_equipment_attachment', id=equipment.id, type='fixed_asset_image') }}" 
+                                     alt="固定资产图片" class="image-preview">
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前图片</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="fixed_asset_image" accept="image/*" onchange="previewImage(event, 'fixedAssetPreview')">
+                        <div id="fixedAssetPreview" class="mt-2" style="display:none;">
+                            <img id="previewFixedAsset" class="image-preview">
+                        </div>
+                        <div class="form-text">支持格式：PNG, JPG, JPEG, GIF（最大16MB）</div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="file-label">位置图片</label>
+                        {% if equipment and equipment.location_image %}
+                            <div>
+                                <img src="{{ url_for('download_equipment_attachment', id=equipment.id, type='location_image') }}" 
+                                     alt="位置图片" class="image-preview">
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前图片</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="location_image" accept="image/*" onchange="previewImage(event, 'locationPreview')">
+                        <div id="locationPreview" class="mt-2" style="display:none;">
+                            <img id="previewLocation" class="image-preview">
+                        </div>
+                        <div class="form-text">支持格式：PNG, JPG, JPEG, GIF（最大16MB）</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 文件附件 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-files"></i>
+                    <h4 class="mb-0">文件附件</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="file-label">发票附件</label>
+                        {% if equipment and equipment.invoice_attachment %}
+                            <div class="file-preview">
+                                <div>已上传发票</div>
+                                <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='invoice_attachment') }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前附件</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="invoice_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">文档类附件</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="file-label">维修附件</label>
+                        {% if equipment and equipment.repair_attachment %}
+                            <div class="file-preview">
+                                <div>已上传维修记录</div>
+                                <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='repair_attachment') }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前附件</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="repair_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">文档类附件</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="file-label">送货附件</label>
+                        {% if equipment and equipment.delivery_attachment %}
+                            <div class="file-preview">
+                                <div>已上传送货单</div>
+                                <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='delivery_attachment') }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前附件</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="delivery_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">文档类附件</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="file-label">年检附件</label>
+                        {% if equipment and equipment.annual_check_attachment %}
+                            <div class="file-preview">
+                                <div>已上传年检报告</div>
+                                <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='annual_check_attachment') }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前附件</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="annual_check_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">文档类附件</div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="file-label">其他附件</label>
+                        {% if equipment and equipment.other_attachment %}
+                            <div class="file-preview">
+                                <div>已上传其他附件</div>
+                                <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='other_attachment') }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-muted mb-2">无当前附件</div>
+                        {% endif %}
+                        <input type="file" class="form-control" name="other_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">文档类附件</div>
+                    </div>
+                </div>
+            <div class="form-section">
+    <div class="section-title">
+        <i class="bi bi-file-earmark-text"></i>
+        <h4 class="mb-0">技术文档附件</h4>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="file-label">设备原厂使用说明书</label>
+            {% if equipment and equipment.manufacturer_manual_attachment %}
+                <div class="file-preview">
+                    <div>已上传说明书</div>
+                    <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='manufacturer_manual_attachment') }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-muted mb-2">无当前附件</div>
+            {% endif %}
+            <input type="file" class="form-control" name="manufacturer_manual_attachment" accept=".pdf,.doc,.docx">
+            <div class="form-text">PDF或Word文档</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label class="file-label">SOP标准操作规程</label>
+            {% if equipment and equipment.sop_attachment %}
+                <div class="file-preview">
+                    <div>已上传SOP</div>
+                    <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='sop_attachment') }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-muted mb-2">无当前附件</div>
+            {% endif %}
+            <input type="file" class="form-control" name="sop_attachment" accept=".pdf,.doc,.docx">
+            <div class="form-text">PDF或Word文档</div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="file-label">设备定期校准记录</label>
+            {% if equipment and equipment.calibration_record_attachment %}
+                <div class="file-preview">
+                    <div>已上传校准记录</div>
+                    <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='calibration_record_attachment') }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        <i  class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-muted mb-2">无当前附件</div>
+            {% endif %}
+            <input type="file" class="form-control" name="calibration_record_attachment" accept=".pdf,.xls,.xlsx">
+            <div class="form-text">PDF或Excel文档</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label class="file-label">厂家技术资料</label>
+            {% if equipment and equipment.manufacturer_data_attachment %}
+                <div class="file-preview">
+                    <div>已上传厂家资料</div>
+                    <a href="{{ url_for('download_equipment_attachment', id=equipment.id, type='manufacturer_data_attachment') }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i> 下载
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-muted mb-2">无当前附件</div>
+            {% endif %}
+            <input type="file" class="form-control" name="manufacturer_data_attachment" accept=".pdf,.zip,.rar">
+            <div class="form-text">PDF或压缩文件</div>
+        </div>
+    </div>
+</div>
+
+            <!-- ================== 备注信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-chat-left-text"></i>
+                    <h4 class="mb-0">备注信息</h4>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" name="notes" rows="3" maxlength="500" 
+                                  placeholder="最多500字符">{{ equipment.notes if equipment else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提交按钮 -->
+            <div class="action-buttons">
+                <button type="submit" name="save" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> 保存更改
+                </button>
+                
+                <button type="submit" name="save_as_new" class="btn btn-secondary">
+                    <i class="bi bi-files me-1"></i> 另存为新记录
+                </button>
+                
+                <a href="{{ url_for('equipment_list') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i> 取消
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 字体调整功能
+        function adjustFontSize(step) {
+            const baseSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+            const newSize = baseSize + (step * 0.8);
+            
+            // 限制字体大小范围 (11px - 14px)
+            if(newSize >= 11 && newSize <= 14) {
+                document.documentElement.style.fontSize = newSize + 'px';
+                document.querySelectorAll('.form-control, .form-select').forEach(el => {
+                    el.style.minHeight = (newSize * 2) + 'px';
+                });
+            }
+        }
+
+        // 表单验证
+        (function () {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+        
+        // 图片预览功能
+        function previewImage(event, previewContainerId) {
+            const previewContainer = document.getElementById(previewContainerId);
+            const previewId = "preview" + previewContainerId.replace("Preview", "");
+            const preview = document.getElementById(previewId);
+            const file = event.target.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '';
+                previewContainer.style.display = 'none';
+            }
+        }
+        
+// 字体调整功能
+function adjustFontSize(step) {
+    // 获取当前基础字体大小并转换为数字
+    const baseSize = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+    );
+    
+    // 计算新大小并扩大调整范围
+    const newSize = baseSize + (step * 2); // 增大调整幅度
+    
+    // 限制字体大小范围 (10px - 24px)
+    if (newSize >= 10 && newSize <= 24) {
+        // 设置根元素字体大小
+        document.documentElement.style.fontSize = newSize + 'px';
+        
+        // 优化表单控件高度调整
+        document.querySelectorAll('.form-control, .form-select').forEach(el => {
+            // 更合理的高度计算方式
+            el.style.minHeight = (newSize * 1.8) + 'px';
+        });
+    }
+}
+        // 初始化日期字段
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置当前日期为默认值（仅在新建设备时）
+            const purchaseDateInput = document.querySelector('input[name="purchase_date"]');
+            if (purchaseDateInput && !purchaseDateInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                purchaseDateInput.value = today;
+            }
+        });
+    </script>
+</body>
+</html>

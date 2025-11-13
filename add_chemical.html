@@ -1,0 +1,1055 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>化学品管理系统 - 添加化学品</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #f3f4f7;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #f0f4f8;
+            color: #343a40;
+            padding-bottom: 40px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        
+        .form-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-bg);
+        }
+        
+        .section-title i {
+            font-size: 1.2rem;
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: #495057;
+        }
+        
+        .required-label::after {
+            content: "*";
+            color: var(--danger-color);
+            margin-left: 3px;
+        }
+        
+        .file-preview-container {
+            background-color: var(--light-bg);
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px dashed var(--border-color);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+        
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .form-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .btn-save {
+            background-color: var(--primary-color);
+            padding: 8px 20px;
+            min-width: 120px;
+            color: white;
+        }
+        
+        .btn-save:hover {
+            background-color: #3250d4;
+        }
+        
+        .btn-cancel {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            padding: 8px 20px;
+            min-width: 100px;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #e9ecef;
+        }
+        
+        .form-note {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .form-header h2 {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .form-header p {
+            color: #6c757d;
+            max-width: 600px;
+            margin: 10px auto 0;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+        
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 22px;
+            left: 50px;
+            width: 80px;
+            height: 2px;
+            background-color: var(--border-color);
+        }
+        
+        .step-circle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 10px;
+            z-index: 1;
+        }
+        
+        .step.active .step-circle {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .step-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .step.active .step-text {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        /* 手写签名区域样式 */
+        .signature-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .signature-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .signature-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        #signatureCanvas {
+            width: 100%;
+            height: 150px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            cursor: crosshair;
+            touch-action: none; /* 防止触摸设备上的滚动 */
+        }
+        
+        .signature-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .signature-preview {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        #signaturePreview {
+            max-width: 300px;
+            max-height: 100px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .signature-required {
+            color: var(--danger-color);
+            font-weight: 500;
+        }
+        
+        .signature-instructions {
+            background-color: #e8f4fd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .signature-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        
+        .signature-status.confirmed {
+            background-color: #d4edda;
+            color: #155724;
+            display: block;
+        }
+        
+        .signature-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            .form-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn-save, .btn-cancel {
+                width: 100%;
+            }
+            
+            .step-indicator {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .step:not(:last-child)::after {
+                display: none;
+            }
+            
+            .signature-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题和引导 -->
+        <div class="form-header">
+            <h2><i class="bi bi-plus-circle me-2"></i>添加新化学品</h2>
+            <p>请填写以下信息以添加新的化学品到库存系统，所有带 * 的字段为必填项</p>
+        </div>
+        
+        <!-- 步骤指示器 -->
+        <div class="step-indicator">
+            <div class="step active">
+                <div class="step-circle">1</div>
+                <div class="step-text">基本信息</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">2</div>
+                <div class="step-text">库存信息</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">3</div>
+                <div class="step-text">采购信息</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">4</div>
+                <div class="step-text">签名确认</div>
+            </div>
+        </div>
+        
+        <!-- Flash消息显示 -->
+        <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            请确保所有必填字段都已填写，并在提交前进行签名确认
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+            
+            <!-- ================== 基本信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-info-circle"></i>
+                    <h4 class="mb-0">基本信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">商品代码</label>
+                        <input type="text" class="form-control" name="product_code" required>
+                        <div class="invalid-feedback">请输入有效商品代码</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">化学品名称</label>
+                        <input type="text" class="form-control" name="name" required>
+                        <div class="invalid-feedback">请输入名称</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">型号</label>
+                        <input type="text" class="form-control" name="model" required>
+                        <div class="invalid-feedback">请输入规格</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">商品规格</label>
+                        <input type="text" class="form-control" name="specification" required>
+                        <div class="invalid-feedback">请输入规格</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">分类</label>
+                        <select class="form-select" name="category" required>
+                            <option value="">请选择...</option>
+                            <option value="化学纯">化学纯</option>
+                            <option value="分析纯">分析纯</option>
+                            <option value="色谱纯">色谱纯</option>
+                            <option value="标准溶液">标准溶液</option>
+                        </select>
+                        <div class="invalid-feedback">请选择分类</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">耗材类别</label>
+                        <select class="form-select" name="consumable_category">
+                            <option value="">未分类</option>
+                            <option value="试药">试药</option>
+                            <option value="滴定液">滴定液</option>
+                            <option value="缓冲液">缓冲液</option>
+                            <option value="试液">试液</option>
+                            <option value="对照品">对照品</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">浓度</label>
+                        <input type="number" step="0.01" class="form-control" name="concentration">
+                        <div class="invalid-feedback">请输入有效浓度</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">单位</label>
+                        <select class="form-select" name="unit">
+                            <option value="">未指定</option>
+                            <option value="N">N</option>
+                            <option value="M">M</option>
+                            <option value="mol/L">mol/L</option>
+                            <option value="mg/ml">mg/ml</option>
+                            <option value="%">%</option>
+                            <option value="g/L">g/L</option>
+                            <option value="（x）">（x）</option>
+                            <option value="（°Bé）">（°Bé）</option>
+                            <option value="（ER）">（ER）</option>
+                            <option value="μg/L">μg/L</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 位置与监管信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-geo-alt"></i>
+                    <h4 class="mb-0">位置与监管信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">仓库位置</label>
+                        <select class="form-select" name="warehouse_location">
+                            <option value=""></option>
+                            <option value="25℃恒温箱">25℃恒温箱</option>
+                            <option value="AL01-01">AL01-01</option>
+                            <option value="AL01-02">AL01-02</option>
+                            <option value="AL01-03">AL01-03</option>
+                            <option value="AL01-04">AL01-04</option>
+                            <option value="AL01-05">AL01-05</option>
+                            <option value="AL01-06">AL01-06</option>
+                            <option value="AL01-07">AL01-07</option>
+                            <option value="AL01-08">AL01-08</option>
+                            <option value="AL01-09">AL01-09</option>
+                            <option value="AL01-10">AL01-10</option>
+                            <option value="AL01-11">AL01-11</option>
+                            <option value="AL01-12">AL01-12</option>
+                            <option value="1号仓 AL03-01">1号仓 AL03-01</option>
+                            <option value="1号仓 AL03-02">1号仓 AL03-02</option>
+                            <option value="1号仓 AL03-03">1号仓 AL03-03</option>
+                            <option value="1号仓 防爆1号柜">1号仓 防爆1号柜</option>
+                            <option value="1号仓 防爆2号柜">1号仓 防爆2号柜</option>
+                            <option value="1号仓 防爆3号柜">1号仓 防爆3号柜</option>
+                            <option value="1号仓 防爆4号柜">1号仓 防爆4号柜</option>
+                            <option value="1号仓 防爆5号柜">1号仓 防爆5号柜</option>
+                            <option value="FI-A4">FI-A4</option>
+                            <option value="标准品盒（1）">标准品盒（1）</option>
+                            <option value="标准品盒（2）">标准品盒（2）</option>
+                            <option value="标准品盒（3）">标准品盒（3）</option>
+                            <option value="标准品盒（4）">标准品盒（4）</option>
+                            <option value="标准品盒（5）">标准品盒（5）</option>
+                            <option value="标准品盒（6）">标准品盒（6）</option>
+                            <option value="冰箱">冰箱</option>
+                            <option value="通风橱">通风橱</option>
+                            <option value="易制爆">易制爆</option>
+                            <option value="易制毒">易制毒</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">CAS编号</label>
+                        <input type="text" class="form-control" name="cas_number" placeholder="例如：7732-18-5">
+                        <div class="form-note">化学品唯一标识号</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">监管类别</label>
+                        <select class="form-select" name="regulatory_category">
+                            <option value="">未指定</option>
+                            <option value="【X】危险化学品">【X】危险化学品</option>
+                            <option value="【X】易制爆；【X】危险化学品">【X】易制爆；【X】危险化学品</option>
+                            <option value="【X】易制毒；【X】危险化学品">【X】易制毒；【X】危险化学品</option>
+                            <option value="危险化学品">危险化学品</option>
+                            <option value="易制爆；危险化学品">易制爆；危险化学品</option>
+                            <option value="易制毒；危险化学品">易制毒；危险化学品</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 库存信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-boxes"></i>
+                    <h4 class="mb-0">库存信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">操作员</label>
+                        <select class="form-select" name="operator" required>
+                            <option value="">请选择...</option>
+                            <option value="陈敬宏">陈敬宏</option>
+                            <option value="萧冰莹">萧冰莹</option>
+                            <option value="叶汉农">叶汉农</option>
+                            <option value="黄凤嫦">黄凤嫦</option>
+                            <option value="方洧勉">方洧勉</option>
+                            <option value="曾爱华">曾爱华</option>
+                            <option value="何咏瑜">何咏瑜</option>
+                            <option value="许华文">许华文</option>
+                            <option value="周晓华">周晓华</option>
+                            <option value="欧阳浩强">欧阳浩强</option>
+                            <option value="陈建华">陈建华</option>
+                            <option value="骆锦强">骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择操作员</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">确认人</label>
+                        <select class="form-select" name="confirmer" required>
+                            <option value="">请选择...</option>
+                            <option value="陈敬宏">陈敬宏</option>
+                            <option value="萧冰莹">萧冰莹</option>
+                            <option value="叶汉农">叶汉农</option>
+                            <option value="黄凤嫦">黄凤嫦</option>
+                            <option value="方洧勉">方洧勉</option>
+                            <option value="曾爱华">曾爱华</option>
+                            <option value="何咏瑜">何咏瑜</option>
+                            <option value="许华文">许华文</option>
+                            <option value="周晓华">周晓华</option>
+                            <option value="欧阳浩强">欧阳浩强</option>
+                            <option value="陈建华">陈建华</option>
+                            <option value="骆锦强">骆锦强</option>
+                        </select>
+                        <div class="invalid-feedback">请选择确认人</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">存放位置</label>
+                        <select class="form-select" name="location" required>
+                            <option value="">请选择...</option>
+                            <option value="1#仓">1#仓</option>
+                           <option value="安全柜">安全柜</option>
+                            <option value="通风橱">通风橱</option>
+                            <option value="易制爆仓库">易制爆仓库</option>
+                            <option value="冰箱">冰箱</option>
+                        </select>
+                        <div class="invalid-feedback">请选择存放位置</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">操作类型</label>
+                        <select class="form-select" name="action" required>
+                            <option value="入库">入库</option>
+                            <option value="出库">出库</option>
+                            <option value="盘点">盘点</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label required-label">操作数量</label>
+                        <input type="number" class="form-control" name="quantity" min="1" max="9999" required>
+                        <div class="invalid-feedback">请输入有效数量</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required-label">此批总库存</label>
+                        <input type="number" class="form-control" name="batch_total_stock" min="0" max="9999" required>
+                        <div class="invalid-feedback">请输入此批总库存</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required-label">物品状态</label>
+                        <select class="form-select" name="status" required>
+                            <option value="正常">正常</option>
+                            <option value="待检">待检</option>
+                            <option value="过期">过期</option>
+                            <option value="销毁">销毁</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">总库存</label>
+                        <input type="number" class="form-control" name="total_stock" min="0" max="9999" required>
+                        <div class="invalid-feedback">请输入总库存</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">安全库存</label>
+                        <input type="number" class="form-control" name="safety_stock" min="0" max="9999" required>
+                        <div class="invalid-feedback">请输入安全库存</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 生产与采购信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-building"></i>
+                    <h4 class="mb-0">生产与采购信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label required-label">生产商</label>
+                        <input type="text" class="form-control" name="manufacturer" required>
+                        <div class="invalid-feedback">请输入生产商</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">批次号</label>
+                        <input type="text" class="form-control" name="batch_number" required>
+                        <div class="invalid-feedback">请输入有效批次号</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">收支日期</label>
+                        <input type="date" class="form-control" name="production_date" required>
+                        <div class="invalid-feedback">请选择日期</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">过期日期</label>
+                        <input type="date" class="form-control" name="expiration_date" required>
+                        <div class="invalid-feedback">请选择日期</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label required-label">单价（元）</label>
+                        <input type="number" class="form-control" name="price" step="0.01" required>
+                        <div class="invalid-feedback">请输入有效金额</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label required-label">供应商</label>
+                        <input type="text" class="form-control" name="supplier" required>
+                        <div class="invalid-feedback">请输入供应商</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">备注信息</label>
+                        <textarea class="form-control" name="notes" rows="3" maxlength="200" placeholder="最多200字符"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================== 附件管理 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="bi bi-paperclip"></i>
+                    <h4 class="mb-0">附件管理</h4>
+                </div>
+                
+                <!-- 化学品图片 -->
+                <div class="mb-4">
+                    <label class="form-label">化学品图片</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-image me-2"></i>
+                                <span id="imageFileName">未选择文件</span>
+                            </div>
+                        </div>
+                        <img id="imagePreview" class="preview-image" alt="图片预览">
+                    </div>
+                    
+                    <input type="file" class="form-control" name="image" id="imageInput" accept="image/*" onchange="previewImage(event)">
+                    <div class="upload-hint">
+                        支持格式：PNG, JPG, JPEG, GIF（最大16MB）
+                    </div>
+                </div>
+                
+                <!-- 附件 -->
+                <div class="mb-4">
+                    <label class="form-label">通用附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-file-earmark me-2"></i>
+                                <span id="attachmentFileName">未选择文件</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="attachment" id="attachmentInput" accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="updateFileName('attachment')">
+                    <div class="upload-hint">
+                        支持文档格式：PDF, DOC, DOCX, XLS, XLSX
+                    </div>
+                </div>
+                
+                <!-- 送货单附件 -->
+                <div class="mb-4">
+                    <label class="form-label">送货单附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-truck me-2"></i>
+                                <span id="deliveryFileName">未选择文件</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="delivery_order_attachment" id="deliveryInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif" onchange="updateFileName('delivery')">
+                    <div class="upload-hint">
+                        支持格式：文档或图片
+                    </div>
+                </div>
+                
+                <!-- 发票附件 -->
+                <div class="mb-4">
+                    <label class="form-label">发票附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-receipt me-2"></i>
+                                <span id="invoiceFileName">未选择文件</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="invoice_attachment" id="invoiceInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif" onchange="updateFileName('invoice')">
+                    <div class="upload-hint">
+                        支持格式：文档或图片
+                    </div>
+                </div>
+                
+                <!-- MSDS附件 -->
+                <div>
+                    <label class="form-label">MSDS附件</label>
+                    
+                    <div class="file-preview-container">
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="bi bi-file-medical me-2"></i>
+                                <span id="msdsFileName">未选择文件</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" class="form-control" name="msds_attachment" id="msdsInput" accept=".pdf,.doc,.docx,.xls,.xlsx" onchange="updateFileName('msds')">
+                    <div class="upload-hint">
+                        化学品安全技术说明书（仅文档格式）
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ================== 手写签名确认 ================== -->
+            <div class="signature-section">
+                <div class="section-title">
+                    <i class="bi bi-pen"></i>
+                    <h4 class="mb-0">操作员签名确认</h4>
+                </div>
+                
+                <div class="signature-container">
+                    <canvas id="signatureCanvas"></canvas>
+                    <div class="signature-actions">
+                        <button type="button" class="btn btn-outline-primary" id="clearSignature">
+                            <i class="bi bi-eraser me-1"></i>清除签名
+                        </button>
+                        <button type="button" class="btn btn-primary" id="saveSignature">
+                            <i class="bi bi-check-circle me-1"></i>确认签名
+                        </button>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="signature_data" id="signatureData">
+                
+                <div class="signature-preview">
+                    <div class="signature-title">签名预览</div>
+                    <img id="signaturePreview" alt="签名预览">
+                    <div class="signature-status" id="signatureStatus">
+                        <i class="bi bi-check-circle-fill me-1"></i>签名已确认
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 表单操作按钮 -->
+            <div class="form-footer">
+                <button type="submit" class="btn btn-save">
+                    <i class="bi bi-save me-1"></i>提交信息
+                </button>
+                <a href="index.html" class="btn btn-cancel">
+                    <i class="bi bi-x-lg me-1"></i>取消
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 图片预览功能
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const fileNameElement = document.getElementById('imageFileName');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    fileNameElement.textContent = file.name;
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '';
+                preview.style.display = 'none';
+                fileNameElement.textContent = '未选择文件';
+            }
+        }
+        
+        // 更新文件名显示
+        function updateFileName(type) {
+            const fileInput = document.getElementById(type + 'Input');
+            const fileNameElement = document.getElementById(type + 'FileName');
+            
+            if (fileInput.files.length > 0) {
+                fileNameElement.textContent = fileInput.files[0].name;
+            } else {
+                fileNameElement.textContent = '未选择文件';
+            }
+        }
+        
+        // 表单验证和签名处理
+        (function () {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            
+            // 初始化签名功能
+            document.addEventListener('DOMContentLoaded', function() {
+                initSignaturePad();
+                
+                // 设置今天的日期为默认值
+                const today = new Date().toISOString().split('T')[0];
+                document.querySelectorAll('input[type="date"]').forEach(input => {
+                    if (!input.value) input.value = today;
+                });
+            });
+            
+            // 表单提交验证
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    // 检查签名是否存在
+                    const signatureData = document.getElementById('signatureData').value;
+                    
+                    // 添加签名验证
+                    if (!signatureData) {
+                        // 提示用户签名
+                        const statusElem = document.getElementById('signatureStatus');
+                        statusElem.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>请先完成签名确认';
+                        statusElem.className = 'signature-status error';
+                        statusElem.style.display = 'block';
+                        
+                        // 滚动到签名区域
+                        document.querySelector('.signature-section').scrollIntoView({behavior: 'smooth'});
+                        
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                    }
+                    
+                    // 检查签名格式
+                    if (!signatureData.startsWith('data:image/png;base64,')) {
+                        const statusElem = document.getElementById('signatureStatus');
+                        statusElem.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>签名格式无效，请重新签名';
+                        statusElem.className = 'signature-status error';
+                        statusElem.style.display = 'block';
+                        
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                    }
+                    
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        })();
+        
+        // 手写签名功能
+        function initSignaturePad() {
+            const canvas = document.getElementById('signatureCanvas');
+            const clearBtn = document.getElementById('clearSignature');
+            const saveBtn = document.getElementById('saveSignature');
+            const signatureDataInput = document.getElementById('signatureData');
+            const previewImg = document.getElementById('signaturePreview');
+            const signatureStatus = document.getElementById('signatureStatus');
+            
+            // 正确设置Canvas尺寸
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                
+                canvas.width = rect.width * ratio;
+                canvas.height = rect.height * ratio;
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+                
+                const ctx = canvas.getContext('2d');
+                ctx.scale(ratio, ratio);
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#4361ee';
+            }
+            
+            // 初始调整尺寸
+            resizeCanvas();
+            
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            let hasDrawn = false; // 跟踪用户是否进行了绘制
+            
+            // 清除画布
+            function clearSignatureCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                hasDrawn = false;
+            }
+            
+            // 清除签名
+            function clearSignature() {
+                clearSignatureCanvas();
+                previewImg.style.display = 'none';
+                signatureStatus.style.display = 'none';
+                signatureDataInput.value = '';
+                saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>确认签名';
+                saveBtn.disabled = false;
+            }
+            
+            // 保存签名
+            function saveSignature() {
+                // 检查用户是否进行了绘制
+                if (!hasDrawn) {
+                    signatureStatus.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>请先在签名区域签名';
+                    signatureStatus.className = 'signature-status error';
+                    signatureStatus.style.display = 'block';
+                    return;
+                }
+                
+                // 将Canvas转为DataURL
+                const dataURL = canvas.toDataURL('image/png');
+                
+                // 显示预览
+                previewImg.src = dataURL;
+                previewImg.style.display = 'block';
+                signatureStatus.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>签名已确认';
+                signatureStatus.className = 'signature-status confirmed';
+                signatureStatus.style.display = 'block';
+                
+                // 存储签名数据
+                signatureDataInput.value = dataURL;
+                
+                // 更新按钮状态
+                saveBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>已确认';
+                saveBtn.disabled = true;
+            }
+            
+            // 开始绘图
+            function startDrawing(e) {
+                drawing = true;
+                [lastX, lastY] = getCoordinates(e);
+            }
+            
+            // 绘图过程中
+            function draw(e) {
+                if (!drawing) return;
+                
+                hasDrawn = true;
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                
+                const [x, y] = getCoordinates(e);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                [lastX, lastY] = [x, y];
+            }
+            
+            // 结束绘图
+            function stopDrawing() {
+                drawing = false;
+            }
+            
+            // 获取坐标
+            function getCoordinates(e) {
+                let x, y;
+                const rect = canvas.getBoundingClientRect();
+                
+                if (e.type.includes('touch')) {
+                    const touch = e.touches[0] || e.changedTouches[0];
+                    x = touch.clientX - rect.left;
+                    y = touch.clientY - rect.top;
+                } else {
+                    x = e.clientX - rect.left;
+                    y = e.clientY - rect.top;
+                }
+                
+                return [x, y];
+            }
+            
+            // 事件监听器
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // 触摸设备支持
+            canvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                startDrawing(e);
+            });
+            canvas.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                draw(e);
+            });
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            clearBtn.addEventListener('click', clearSignature);
+            saveBtn.addEventListener('click', saveSignature);
+            
+            // 窗口大小变化时重新调整Canvas
+            window.addEventListener('resize', resizeCanvas);
+            
+            // 初始清除画布
+            clearSignatureCanvas();
+        }
+    </script>
+</body>
+</html>

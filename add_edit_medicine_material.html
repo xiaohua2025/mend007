@@ -1,0 +1,886 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if item %}编辑物品{% else %}添加物品{% endif %} - 药品与物资检查表</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .form-section {
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            color: #4361ee;
+        }
+        
+        .required-label::after {
+            content: "*";
+            color: #dc3545;
+            margin-left: 4px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .btn-icon {
+            margin-right: 5px;
+        }
+        
+        .collapsible-header {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+        
+        .collapsible-content {
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: block;
+        }
+        
+        .no-preview {
+            display: block;
+        }
+        
+        .video-preview-container {
+            position: relative;
+            margin-top: 10px;
+            border: 1px dashed #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        
+        .video-preview {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .video-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .video-placeholder {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        
+        .preview-image {
+            max-height: 150px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-top: 10px;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        
+        .upload-status {
+            margin-top: 10px;
+            font-size: 14px;
+            text-align: center;
+            color: #4361ee;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <h2 class="mb-4">
+            <i class="fas fa-{% if item %}edit{% else %}plus-circle{% endif %} me-2"></i>
+            {% if item %}编辑物品{% else %}添加物品{% endif %}
+        </h2>
+        
+        <!-- Flash消息显示 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" id="medicineForm">
+            {% if item %}
+                <input type="hidden" name="id" value="{{ item.id }}">
+            {% endif %}
+            
+            <!-- ================== 基本信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    <h4 class="mb-0">基本信息</h4>
+                </div>
+
+                <div class="row g-3">
+                    <!-- 物品代码字段（无唯一性检查） -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">物品代码</label>
+                        <input type="text" class="form-control" name="item_code" 
+                               value="{{ item.item_code if item else '' }}" required>
+                        <div class="invalid-feedback">请输入物品代码</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">物品名称</label>
+                        <input type="text" class="form-control" name="name" 
+                               value="{{ item.name if item else '' }}" required>
+                        <div class="invalid-feedback">请输入物品名称</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">物品类型</label>
+                        <select class="form-select" name="item_type" required>
+                            <option value="">-- 请选择 --</option>
+                            <option value="药品" {% if item and item.item_type == '药品' %}selected{% endif %}>药品</option>
+                            <option value="物资" {% if item and item.item_type == '物资' %}selected{% endif %}>物资</option>
+                        </select>
+                        <div class="invalid-feedback">请选择物品类型</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">物品类别</label>
+                        <input type="text" class="form-control" name="category" 
+                               value="{{ item.category if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">规格</label>
+                        <input type="text" class="form-control" name="specification" 
+                               value="{{ item.specification if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label  class="form-label">型号</label>
+                        <input type="text" class="form-control" name="model" 
+                               value="{{ item.model if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">物品用途</label>
+                        <textarea class="form-control" name="purpose" rows="2">{{ item.purpose if item else '' }}</textarea>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">实验室</label>
+                        <input type="text" class="form-control" name="laboratory" 
+                               value="{{ item.laboratory if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">厂家</label>
+                        <input type="text" class="form-control" name="manufacturer" 
+                               value="{{ item.manufacturer if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">供应商</label>
+                        <input type="text" class="form-control" name="supplier" 
+                               value="{{ item.supplier if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">物品官方网站</label>
+                        <input type="url" class="form-control" name="official_website" 
+                               value="{{ item.official_website if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-control" name="notes" rows="3">{{ item.notes if item else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ================== 库存信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-boxes"></i>
+                    <h4 class="mb-0">库存信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required-label">数量</label>
+                        <input type="number" class="form-control" name="quantity" 
+                               value="{{ item.quantity if item else '0' }}" required>
+                        <div class="invalid-feedback">请输入数量</div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">单位</label>
+                        <input type="text" class="form-control" name="unit" 
+                               value="{{ item.unit if item else '' }}">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required-label">存储位置</label>
+                        <input type="text" class="form-control" name="location" 
+                               value="{{ item.location if item else '' }}" required>
+                        <div class="invalid-feedback">请输入存储位置</div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">此批总库存</label>
+                        <input type="number" class="form-control" name="batch_total_stock" 
+                               value="{{ item.batch_total_stock if item else '0' }}">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">总库存</label>
+                        <input type="number" class="form-control" name="total_stock" 
+                               value="{{ item.total_stock if item else '0' }}">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">安全库存</label>
+                        <input type="number" class="form-control" name="safety_stock" 
+                               value="{{ item.safety_stock if item else '0' }}">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">单价</label>
+                        <div class="input-group">
+                            <span class="input-group-text">¥</span>
+                            <input type="number" step="0.01" class="form-control" name="price" 
+                                   value="{{ item.price if item else '0' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" name="status">
+                            <option value="正常" {% if item and item.status == '正常' %}selected{% endif %}>正常</option>
+                            <option value="即将过期" {% if item and item.status == '即将过期' %}selected{% endif %}>即将过期</option>
+                            <option value="过期" {% if item and item.status == '过期' %}selected{% endif %}>过期</option>
+                            <option value="不足" {% if item and item.status == '不足' %}selected{% endif %}>不足</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">储存条件</label>
+                        <input type="text" class="form-control" name="storage_condition" 
+                               value="{{ item.storage_condition if item else '' }}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ================== 时间信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i  class="fas fa-calendar-alt"></i>
+                    <h4 class="mb-0">时间信息</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">支付日期</label>
+                        <input type="date" class="form-control" name="payment_date" 
+                               value="{{ item.payment_date.strftime('%Y-%m-%d') if item and item.payment_date else '' }}">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">操作日期</label>
+                        <input type="datetime-local" class="form-control" name="operation_date" 
+                               value="{% if item and item.operation_date %}{{ item.operation_date.strftime('%Y-%m-%dT%H:%M') }}{% else %}{{ current_time.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required-label">失效日期</label>
+                        <input type="date" class="form-control" name="expiration_date" 
+                               value="{{ item.expiration_date.strftime('%Y-%m-%d') if item and item.expiration_date else '' }}" required>
+                        <div class="invalid-feedback">请输入失效日期</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ================== 操作信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-user"></i>
+                    <h4 class="mb-0">操作信息（数据库记录）</h4>
+                </div>
+                
+                <div class="row g-3">
+                    <!-- 操作类型 -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">操作类型</label>
+                        <select class="form-select" name="action">
+                            <option value="入库" {% if item and item.action == '入库' %}selected{% endif %}>入库</option>
+                            <option value="出库" {% if item and item.action == '出库' %}selected{% endif %}>出库</option>
+                            <option value="盘点" {% if item and item.action == '盘点' %}selected{% endif %}>盘点</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 批次号 -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">批次号</label>
+                        <input type="text" class="form-control" name="batch_number" 
+                               value="{{ item.batch_number if item else '' }}">
+                    </div>
+                    
+                    <!-- 操作员 -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">操作员（数据库记录）</label>
+                        <select class="form-select" name="operator" required>
+                            <option value="">-- 请选择 --</option>
+                            {% for operator in operators %}
+                                <option value="{{ operator }}" 
+                                    {% if item and item.operator == operator %}selected{% endif %}>
+                                    {{ operator }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">请选择操作员</div>
+                    </div>
+                    
+                    <!-- 确认人 -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label required-label">确认人（数据库记录）</label>
+                        <select class="form-select" name="confirmer" required>
+                            <option value="">-- 请选择 --</option>
+                            {% for confirmer in confirmers %}
+                                <option value="{{ confirmer }}" 
+                                    {% if item and item.confirmer == confirmer %}selected{% endif %}>
+                                    {{ confirmer }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">请选择确认人</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ================== 附件信息 ================== -->
+            <div class="form-section">
+                <div class="section-title">
+                    <i class="fas fa-paperclip"></i>
+                    <h4 class="mb-0">附件信息</h4>
+                </div>
+                
+                <!-- 图片附件 -->
+                <div class="collapsible-header" onclick="toggleSection('imageAttachments')">
+                    <span><i class="fas fa-images me-2"></i>图片附件</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div id="imageAttachments" class="collapsible-content">
+                    <div class="row g-3">
+                        <!-- 物品图片 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">物品图片</label>
+                            {% if item and item.item_image %}
+                                <div class="mb-2">
+                                    
+                                    <input type="hidden" name="item_image_old" value="{{ item.item_image }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2" id="no_item_image">无当前图片</div>
+                                <input type="hidden" name="item_image_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="item_image" accept="image/*" 
+                                   onchange="previewImage(this, 'item_image_preview', 'no_item_image')">
+                        </div>
+                        
+                        <!-- 标签图片 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">标签图片</label>
+                            {% if item and item.label_image %}
+                                <div class="mb-2">
+                                    
+                                    <input type="hidden" name="label_image_old" value="{{ item.label_image }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2" id="no_label_image">无当前图片</div>
+                                <input type="hidden" name="label_image_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="label_image" accept="image/*" 
+                                   onchange="previewImage(this, 'label_image_preview', 'no_label_image')">
+                        </div>
+                        
+                        <!-- 使用说明图片 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">使用说明图片</label>
+                            {% if item and item.instruction_image %}
+                                <div class="mb-2">
+                                    
+                                    <input type="hidden" name="instruction_image_old" value="{{ item.instruction_image }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2" id="no_instruction_image">无当前图片</div>
+                                <input type="hidden" name="instruction_image_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="instruction_image" accept="image/*" 
+                                   onchange="previewImage(this, 'instruction_image_preview', 'no_instruction_image')">
+                        </div>
+                        
+                        <!-- 定位图片 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">定位图片</label>
+                            {% if item and item.location_image %}
+                                <div class="mb-2">
+                                    
+                                    <input type="hidden" name="location_image_old" value="{{ item.location_image }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2" id="no_location_image">无当前图片</div>
+                                <input type="hidden" name="location_image_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="location_image" accept="image/*" 
+                                   onchange="previewImage(this, 'location_image_preview', 'no_location_image')">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 文档附件 -->
+                <div class="collapsible-header" onclick="toggleSection('documentAttachments')">
+                    <span><i class="fas fa-file-alt me-2"></i>文档附件</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div id="documentAttachments" class="collapsible-content">
+                    <div class="row g-3">
+                        <!-- 送货单附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">送货单附件</label>
+                            {% if item and item.delivery_order_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='delivery_order_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载送货单
+                                    </a>
+                                    <input type="hidden" name="delivery_order_attachment_old" value="{{ item.delivery_order_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="delivery_order_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="delivery_order_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                        
+                        <!-- 禀议附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">禀议附件</label>
+                            {% if item and item.proposal_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='proposal_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载禀议
+                                    </a>
+                                    <input type="hidden" name="proposal_attachment_old" value="{{ item.proposal_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="proposal_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="proposal_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                        
+                        <!-- 采购申请附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">采购申请附件</label>
+                            {% if item and item.purchase_request_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='purchase_request_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载采购申请
+                                    </a>
+                                    <input type="hidden" name="purchase_request_attachment_old" value="{{ item.purchase_request_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="purchase_request_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="purchase_request_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                        
+                        <!-- 厂家资料附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">厂家资料附件</label>
+                            {% if item and item.manufacturer_data_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='manufacturer_data_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载厂家资料
+                                    </a>
+                                    <input type="hidden" name="manufacturer_data_attachment_old" value="{{ item.manufacturer_data_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="manufacturer_data_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="manufacturer_data_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                        
+                        <!-- 报废资料附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">报废资料附件</label>
+                            {% if item and item.disposal_data_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='disposal_data_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载报废资料
+                                    </a>
+                                    <input type="hidden" name="disposal_data_attachment_old" value="{{ item.disposal_data_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="disposal_data_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="disposal_data_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                        
+                        <!-- 其他附件 -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">其他附件</label>
+                            {% if item and item.other_attachment %}
+                                <div class="mb-2">
+                                    <a href="{{ url_for('download_medicine_attachment', id=item.id, type='other_attachment') }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i> 下载其他附件
+                                    </a>
+                                    <input type="hidden" name="other_attachment_old" value="{{ item.other_attachment }}">
+                                </div>
+                            {% else %}
+                                <div class="text-muted mb-2">无当前附件</div>
+                                <input type="hidden" name="other_attachment_old" value="">
+                            {% endif %}
+                            <input type="file" class="form-control" name="other_attachment" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 视频附件 -->
+                <div class="collapsible-header" onclick="toggleSection('videoAttachments')">
+                    <span><i class="fas fa-video me-2"></i>视频附件</span>
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div id="videoAttachments" class="collapsible-content">
+                    <div class="row g-3">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">物品使用视频</label>
+                            
+                            <!-- 视频预览容器 -->
+                            <div class="video-preview-container" id="videoPreviewContainer">
+                                {% if item and item.usage_video %}
+                                    <div class="video-controls">
+                                        <a href="{{ url_for('download_medicine_attachment', id=item.id, type='usage_video') }}" 
+                                           class="btn btn-sm btn-outline-primary" title="下载视频">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="removeVideo()" title="移除视频">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <video controls class="video-preview" id="videoPreview">
+                                        <source src="{{ url_for('download_medicine_attachment', id=item.id, type='usage_video') }}" type="video/mp4">
+                                        您的浏览器不支持视频播放。
+                                    </video>
+                                    <input type="hidden" name="usage_video_old" value="{{ item.usage_video }}">
+                                {% else %}
+                                    <div class="video-placeholder" id="videoPlaceholder">
+                                        <i class="fas fa-film fa-3x mb-2"></i>
+                                        <p>无当前视频</p>
+                                    </div>
+                                    <input type="hidden" name="usage_video_old" value="">
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-3">
+                                <input type="file" id="videoUpload" class="form-control" name="usage_video" 
+                                       accept="video/*" style="display: none;" onchange="handleVideoUpload(this)">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="document.getElementById('videoUpload').click()">
+                                        <i class="fas fa-upload me-1"></i> 选择视频
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="removeVideoBtn" 
+                                            style="display: {% if item and item.usage_video %}block{% else %}none{% endif %};" onclick="removeVideo()">
+                                        <i class="fas fa-trash me-1"></i> 移除视频
+                                    </button>
+                                </div>
+                                <div class="form-text text-muted mt-1">
+                                    支持MP4, MOV, AVI等常见视频格式，最大3000MB
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 上传进度显示区域 -->
+            <div id="uploadProgressContainer"></div>
+            
+            <!-- ================== 操作按钮 ================== -->
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-primary" id="submitButton">
+                    <i class="fas fa-save me-1"></i> 保存
+                </button>
+                
+                {% if item %}
+                <button type="submit" name="save_as_new" value="1" class="btn btn-secondary">
+                    <i class="fas fa-copy me-1"></i> 另存为新记录
+                </button>
+                {% endif %}
+                
+                <a href="{{ url_for('medicine_material_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i> 取消
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 图片预览功能
+        function previewImage(input, previewId, noPreviewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                const noPreview = document.getElementById(noPreviewId);
+                
+                reader.onload = function(e) {
+                    // 创建或更新预览图片
+                    const preview = document.getElementById(previewId);
+                    
+                    if (!preview) {
+                        const newPreview = document.createElement('img');
+                        newPreview.id = previewId;
+                        newPreview.className = 'preview-image';
+                        newPreview.src = e.target.result;
+                        input.parentNode.insertBefore(newPreview, input);
+                    } else {
+                        preview.src = e.target.result;
+                    }
+                    
+                    // 隐藏"无图片"提示
+                    if(noPreview) {
+                        noPreview.style.display = 'none';
+                    }
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+// 前端JS优化 (edit_medicine_material.html)
+function handleVideoUpload(input) {
+    const MAX_SIZE =  3 * 1024 * 1024 * 1024  //  3GB
+    
+    if(input.files[0].size > MAX_SIZE) {
+        alert('视频文件大小超过100MB限制');
+        input.value = '';
+        return;
+    }
+
+        // 视频上传处理
+        function handleVideoUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const videoUrl = URL.createObjectURL(file);
+                const container = document.getElementById('videoPreviewContainer');
+                
+                // 移除现有元素
+                container.innerHTML = '';
+                
+                // 添加控制按钮
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'video-controls';
+                
+                // 添加移除按钮
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.title = '移除视频';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                removeBtn.onclick = removeVideo;
+                controlsDiv.appendChild(removeBtn);
+                
+                // 添加视频元素
+                const video = document.createElement('video');
+                video.className = 'video-preview';
+                video.controls = true;
+                video.src = videoUrl;
+                
+                // 添加到容器
+                container.appendChild(controlsDiv);
+                container.appendChild(video);
+                
+                // 显示移除按钮
+                document.getElementById('removeVideoBtn').style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+            }
+        }
+        
+        // 移除视频
+        function removeVideo() {
+            const container = document.getElementById('videoPreviewContainer');
+            container.innerHTML = `
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <i class="fas fa-film fa-3x mb-2"></i>
+                    <p>无当前视频</p>
+                </div>
+            `;
+            
+            // 重置文件输入
+            document.getElementById('videoUpload').value = '';
+            
+            // 隐藏移除按钮
+            document.getElementById('removeVideoBtn').style.display = 'none';
+        }
+        
+        // 文件验证初始化
+        function initFileValidation() {
+            const MAX_FILE_SIZE = 3 * 1024 * 1024 * 1024  //  3GB
+            
+            // 为所有文件输入添加验证
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', function() {
+                    if (!this.files || this.files.length === 0) return;
+                    
+                    const file = this.files[0];
+                    const fileSize = file.size;
+                    
+                    // 检查文件大小
+                    if (fileSize > MAX_FILE_SIZE) {
+                        alert(`文件大小超过限制 (最大 ${MAX_FILE_SIZE3 * /1024/1024/1024}MB)`);
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // 检查文件类型
+                    const allowedTypes = this.accept.split(',');
+                    const fileType = file.type.toLowerCase();
+                    let isValidType = false;
+                    
+                    for (const type of allowedTypes) {
+                        if (fileType.startsWith(type.replace('.', '').trim()) || 
+                            fileType === type.trim() || 
+                            type === 'image/*' || 
+                            type === 'video/*') {
+                            isValidType = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!isValidType) {
+                        alert('文件类型不被允许');
+                        this.value = '';
+                    }
+                });
+            });
+        }
+        
+        // 表单提交处理 - 显示上传进度
+        document.getElementById('medicineForm').addEventListener('submit', function(e) {
+            // 检查是否有文件被选中
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            let hasFiles = false;
+            
+            fileInputs.forEach(input => {
+                if (input.files.length > 0) {
+                    hasFiles = true;
+                }
+            });
+            
+            if (hasFiles) {
+                // 创建进度显示容器
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'progress-container';
+                progressContainer.innerHTML = `
+                    <h5><i class="fas fa-cloud-upload-alt me-2"></i>文件上传中</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                            role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="upload-status text-center"></div>
+                `;
+                
+                document.getElementById('uploadProgressContainer').appendChild(progressContainer);
+                
+                // 获取进度条元素
+                const progressBar = progressContainer.querySelector('.progress-bar');
+                const statusText = progressContainer.querySelector('.upload-status');
+                
+                // 模拟上传进度
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    progressBar.style.width = `${progress}%`;
+                    
+                    if (progress <= 25) {
+                        statusText.textContent = '准备上传...';
+                    } else if (progress <= 50) {
+                        statusText.textContent = '上传中...';
+                    } else if (progress <= 75) {
+                        statusText.textContent = '处理文件中...';
+                    } else if (progress >= 100) {
+                        statusText.textContent = '文件上传完成!';
+                        clearInterval(interval);
+                        
+                        // 等待片刻后提交表单
+                        setTimeout(() => {
+                            this.submit();
+                        }, 1000);
+                    }
+                }, 200);
+                
+                // 阻止表单立即提交
+                e.preventDefault();
+            }
+        });
+        
+        // 初始化文件验证
+        document.addEventListener('DOMContentLoaded', initFileValidation);
+    </script>
+</body>
+</html>

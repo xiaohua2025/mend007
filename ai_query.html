@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能查询 - 化学品管理系统</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: #f0f4f8;
+            color: #343a40;
+            padding-bottom: 40px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin-top: 30px;
+        }
+        
+        .header-container {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .search-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .engine-card {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            height: 100%;
+            border: 1px solid var(--border-color);
+        }
+        
+        .engine-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        
+        .engine-card.active {
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+        }
+        
+        .engine-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .result-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+        
+        .result-header {
+            border-bottom: 2px solid var(--light-bg);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .result-content {
+            min-height: 300px;
+        }
+        
+        .loading-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+        }
+        
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid rgba(67, 97, 238, 0.2);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .file-item:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .ai-response {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .engine-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+        
+        .search-history {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .history-item:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .no-results {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #6c757d;
+        }
+        
+        .search-type-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background-color: var(--light-bg);
+        }
+        
+        .local-search-badge {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .ai-search-badge {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+        }
+        
+        .external-search-badge {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: var(--warning-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题 -->
+        <div class="header-container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0"><i class="bi bi-robot me-2"></i>化学品智能查询</h1>
+                    <p class="mb-0 mt-2">使用AI技术快速获取化学品信息</p>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-light">
+                    <i class="bi bi-arrow-left me-1"></i> 返回首页
+                </a>
+            </div>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-card">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" id="queryInput" 
+                               placeholder="输入化学品名称、CAS号、商品代码或问题...">
+                        <button class="btn btn-primary" type="button" id="searchButton">
+                            <i class="bi bi-search"></i> 搜索
+                        </button>
+                    </div>
+                    
+                    <!-- 搜索历史 -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">最近搜索</h6>
+                            <button class="btn btn-sm btn-outline-secondary" id="clearHistory">
+                                <i class="bi bi-trash"></i> 清空
+                            </button>
+                        </div>
+                        <div class="search-history mt-2" id="searchHistory">
+                            <!-- 搜索历史将动态加载 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="d-flex flex-column h-100 justify-content-between">
+                        <div>
+                            <h6>高级选项</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="fuzzyMatch">
+                                <label class="form-check-label" for="fuzzyMatch">
+                                    模糊匹配
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeAttachments">
+                                <label class="form-check-label" for="includeAttachments">
+                                    包含附件
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-auto">
+                            <button class="btn btn-outline-primary w-100" id="advancedSearchBtn">
+                                <i class="bi bi-gear"></i> 高级搜索
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 搜索引擎选择 -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-database me-2"></i>选择搜索引擎</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <!-- 本地数据库 -->
+                    <div class="col-md-3">
+                        <div class="engine-card active" data-engine="local">
+                            <div class="card-body text-center">
+                                <i class="bi bi-database-fill engine-icon text-primary"></i>
+                                <h5 class="card-title">本地数据库</h5>
+                                <p class="engine-description">搜索系统内化学品和设备信息</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DeepSeek AI -->
+                    <div class="col-md-3">
+                        <div class="engine-card" data-engine="deepseek">
+                            <div class="card-body text-center">
+                                <i class="bi bi-cpu engine-icon text-info"></i>
+                                <h5 class="card-title">DeepSeek AI</h5>
+                                <p class="engine-description">AI智能分析与解答</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ChemicalBook -->
+                    <div class="col-md-3">
+                        <div class="engine-card" data-engine="chemicalbook">
+                            <div class="card-body text-center">
+                                <i class="bi bi-book engine-icon text-success"></i>
+                                <h5 class="card-title">ChemicalBook</h5>
+                                <p class="engine-description">化学品专业数据库</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 其他数据库 -->
+                    <div class="col-md-3">
+                        <div class="engine-card" data-engine="other">
+                            <div class="card-body text-center">
+                                <i class="bi bi-globe engine-icon text-warning"></i>
+                                <h5 class="card-title">其他数据库</h5>
+                                <p class="engine-description">多种外部数据源</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果展示区域 -->
+        <div class="result-container">
+            <div class="result-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">查询结果</h4>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="exportResults">
+                        <i class="bi bi-download"></i> 导出
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="clearResults">
+                        <i class="bi bi-x-circle"></i> 清除
+                    </button>
+                </div>
+            </div>
+            
+            <div class="result-content">
+                <div class="default-result text-center py-5">
+                    <i class="bi bi-search fs-1 text-muted mb-3"></i>
+                    <p>输入查询内容并点击搜索按钮</p>
+                </div>
+                
+                <div class="search-results" style="display: none;">
+                    <!-- 结果将动态加载到这里 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 当前选中的搜索引擎
+        let selectedEngine = 'local';
+        
+        // 搜索历史
+        let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
+        
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            // 渲染搜索历史
+            renderSearchHistory();
+            
+            // 搜索引擎选择
+            document.querySelectorAll('.engine-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    // 移除所有卡片的active类
+                    document.querySelectorAll('.engine-card').forEach(c => {
+                        c.classList.remove('active');
+                    });
+                    
+                    // 为当前卡片添加active类
+                    this.classList.add('active');
+                    
+                    // 更新选中的搜索引擎
+                    selectedEngine = this.dataset.engine;
+                });
+            });
+            
+            // 搜索按钮点击事件
+            document.getElementById('searchButton').addEventListener('click', performSearch);
+            
+            // 回车键触发搜索
+            document.getElementById('queryInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+            
+            // 清空历史记录
+            document.getElementById('clearHistory').addEventListener('click', function() {
+                searchHistory = [];
+                localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+                renderSearchHistory();
+            });
+            
+            // 清空结果
+            document.getElementById('clearResults').addEventListener('click', function() {
+                document.querySelector('.default-result').style.display = 'block';
+                document.querySelector('.search-results').style.display = 'none';
+                document.querySelector('.search-results').innerHTML = '';
+                document.getElementById('queryInput').value = '';
+            });
+        });
+        
+        // 渲染搜索历史
+        function renderSearchHistory() {
+            const historyContainer = document.getElementById('searchHistory');
+            historyContainer.innerHTML = '';
+            
+            if (searchHistory.length === 0) {
+                historyContainer.innerHTML = '<div class="text-center py-3 text-muted">无搜索历史</div>';
+                return;
+            }
+            
+            // 只显示最近的5条记录
+            const recentHistory = searchHistory.slice(0, 5);
+            
+            recentHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="search-type-badge ${getBadgeClass(item.type)}">${getTypeName(item.type)}</span>
+                            <span>${item.query}</span>
+                        </div>
+                        <small class="text-muted">${formatDate(item.timestamp)}</small>
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', function() {
+                    document.getElementById('queryInput').value = item.query;
+                    performSearch();
+                });
+                
+                historyContainer.appendChild(historyItem);
+            });
+        }
+        
+        // 执行搜索
+        function performSearch() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('请输入查询内容');
+                return;
+            }
+            
+            // 添加到搜索历史
+            addToSearchHistory(query, selectedEngine);
+            
+            // 显示加载状态
+            showLoading();
+            
+            // 根据选择的搜索引擎执行不同的搜索
+            setTimeout(() => {
+                // 隐藏默认结果
+                document.querySelector('.default-result').style.display = 'none';
+                
+                // 显示结果容器
+                const resultsContainer = document.querySelector('.search-results');
+                resultsContainer.style.display = 'block';
+                
+                // 根据引擎类型显示结果
+                if (selectedEngine === 'local') {
+                    showLocalSearchResults(query);
+                } else if (selectedEngine === 'deepseek') {
+                    showAISearchResults(query);
+                } else {
+                    showExternalSearchResults(query);
+                }
+            }, 1000);
+        }
+        
+        // 添加到搜索历史
+        function addToSearchHistory(query, type) {
+            // 移除重复项
+            searchHistory = searchHistory.filter(item => item.query !== query);
+            
+            // 添加到历史记录
+            searchHistory.unshift({
+                query: query,
+                type: type,
+                timestamp: new Date().toISOString()
+            });
+            
+            // 保存到本地存储
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+            
+            // 重新渲染历史记录
+            renderSearchHistory();
+        }
+        
+        // 显示加载状态
+        function showLoading() {
+            const resultsContainer = document.querySelector('.search-results');
+            resultsContainer.innerHTML = `
+                <div class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p class="mt-3">正在搜索，请稍候...</p>
+                </div>
+            `;
+        }
+        
+        // 显示本地搜索结果
+        function showLocalSearchResults(query) {
+            const resultsContainer = document.querySelector('.search-results');
+            
+            // 模拟搜索结果
+            resultsContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> 在本地数据库中找到匹配记录
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="bi bi-database me-2"></i>化学品信息</h5>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>化学品名称</th>
+                                    <th>CAS号</th>
+                                    <th>商品代码</th>
+                                    <th>库存数量</th>
+                                    <th>存储位置</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>硫酸</td>
+                                    <td>7664-93-9</td>
+                                    <td>CHEM001</td>
+                                    <td>25 L</td>
+                                    <td>1#仓库-A区</td>
+                                </tr>
+                                <tr>
+                                    <td>盐酸</td>
+                                    <td>7647-01-0</td>
+                                    <td>CHEM002</td>
+                                    <td>18 L</td>
+                                    <td>1#仓库-B区</td>
+                                </tr>
+                                <tr>
+                                    <td>氢氧化钠</td>
+                                    <td>1310-73-2</td>
+                                    <td>CHEM003</td>
+                                    <td>15 kg</td>
+                                    <td>2#仓库-C区</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="bi bi-paperclip me-2"></i>相关文件</h5>
+                    <ul class="file-list mt-3">
+                        <li class="file-item">
+                            <div>
+                                <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                <span class="ms-2">硫酸安全技术说明书.pdf</span>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </button>
+                            </div>
+                        </li>
+                        <li class="file-item">
+                            <div>
+                                <i class="bi bi-file-earmark-text text-primary"></i>
+                                <span class="ms-2">盐酸MSDS文件.docx</span>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-download"></i> 下载
+                                </button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 显示AI搜索结果
+        function showAISearchResults(query) {
+            const resultsContainer = document.querySelector('.search-results');
+            
+            // 模拟AI分析结果
+            resultsContainer.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> DeepSeek AI分析结果
+                </div>
+                
+                <div class="ai-response">
+                    <h5>关于"${query}"的分析结果</h5>
+                    <p>根据您的查询，我们找到以下信息：</p>
+                    
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">硫酸 (Sulfuric acid)</h5>
+                            <p><strong>CAS号:</strong> 7664-93-9</p>
+                            <p><strong>分子式:</strong> H₂SO₄</p>
+                            <p><strong>危险性:</strong> 强腐蚀性，避免与皮肤接触</p>
+                            <p><strong>用途:</strong> 工业清洗剂、电池制造、化肥生产等</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>安全建议：</h6>
+                        <ul>
+                            <li>操作时需佩戴防护手套和护目镜</li>
+                            <li>存储于阴凉通风处，远离碱性物质</li>
+                            <li>泄漏时使用碳酸钠或石灰中和</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6>相关化学品：</h6>
+                        <div class="d-flex gap-2 mt-2">
+                            <span class="badge bg-light text-dark">盐酸</span>
+                            <span class="badge bg-light text-dark">硝酸</span>
+                            <span class="badge bg-light text-dark">氢氟酸</span>
+                            <span class="badge bg-light text-dark">氢氧化钠</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 显示外部搜索结果
+        function showExternalSearchResults(query) {
+            const resultsContainer = document.querySelector('.search-results');
+            
+            // 模拟外部数据库结果
+            resultsContainer.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-box-arrow-up-right"></i> 外部数据库查询结果
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="bi bi-book me-2"></i>ChemicalBook 结果</h5>
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h5 class="card-title">${query} - 化学品信息</h5>
+                            <p>在ChemicalBook数据库中找到相关信息</p>
+                            <a href="https://www.chemicalbook.com/Search.aspx?keyword=${encodeURIComponent(query)}" 
+                               class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="bi bi-box-arrow-up-right"></i> 查看详情
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5><i class="bi bi-globe me-2"></i>其他数据库结果</h5>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>PubChem</h6>
+                                    <p>美国国立卫生研究院化学品数据库</p>
+                                    <a href="https://pubchem.ncbi.nlm.nih.gov/#query=${encodeURIComponent(query)}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        访问
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>ChemSpider</h6>
+                                    <p>皇家化学学会化学品数据库</p>
+                                    <a href="http://www.chemspider.com/Search.aspx?q=${encodeURIComponent(query)}" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        访问
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>EPA Substance Registry</h6>
+                                    <p>美国环境保护署化学品数据库</p>
+                                    <a href="https://comptox.epa.gov/dashboard/chemical-lists" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        访问
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>ECHA</h6>
+                                    <p>欧洲化学品管理局数据库</p>
+                                    <a href="https://echa.europa.eu/search-for-chemicals" 
+                                       class="btn btn-sm btn-outline-primary" target="_blank">
+                                        访问
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 获取徽章类名
+        function getBadgeClass(type) {
+            switch(type) {
+                case 'local': return 'local-search-badge';
+                case 'deepseek': return 'ai-search-badge';
+                default: return 'external-search-badge';
+            }
+        }
+        
+        // 获取类型名称
+        function getTypeName(type) {
+            switch(type) {
+                case 'local': return '本地';
+                case 'deepseek': return 'AI';
+                default: return '外部';
+            }
+        }
+        
+        // 格式化日期
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

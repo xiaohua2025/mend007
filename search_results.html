@@ -1,0 +1,22 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th>化学品名称</th>
+            <th>生产厂家</th>
+            <th>库位</th>
+            <th>生产批次</th>
+            <th>失效日期</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chemical in results %}
+        <tr>
+            <td>{{ chemical.name }}</td>
+            <td>{{ chemical.manufacturer }}</td>
+            <td>{{ chemical.location }}</td>
+            <td>{{ chemical.batch_number }}</td>
+            <td>{{ chemical.expiration_date.strftime('%Y-%m-%d') if chemical.expiration_date }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

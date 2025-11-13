@@ -1,0 +1,278 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人资料 - 化学品管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            object-fit: cover;
+        }
+        .stats-card {
+            transition: transform 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        .nav-pills .nav-link.active {
+            background-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-flask"></i> 化学品管理系统
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('index') }}">返回首页</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">退出登录</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 个人资料头部 -->
+    <div class="profile-header">
+        <div class="container text-center">
+            <img src="{{ url_for('static', filename='img/default-avatar.png') }}" 
+                 alt="头像" class="avatar mb-3" 
+                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjYwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5Ij7nlJ/mg4U8L3RleHQ+PC9zdmc+'">
+            <h2>{{ current_user.username }}</h2>
+            <p class="mb-0">{{ current_user.full_name or '未设置姓名' }}</p>
+            <small>{{ current_user.department or '未设置部门' }} • {{ current_user.position or '未设置职位' }}</small>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <!-- 侧边导航 -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <ul class="nav nav-pills flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#profile" data-bs-toggle="tab">
+                                    <i class="fas fa-user me-2"></i>基本信息
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#security" data-bs-toggle="tab">
+                                    <i class="fas fa-lock me-2"></i>安全设置
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#activity" data-bs-toggle="tab">
+                                    <i class="fas fa-chart-line me-2"></i>操作记录
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>统计信息</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>注册时间:</span>
+                            <strong>{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else '未知' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>最后登录:</span>
+                            <strong>{{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else '未知' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>操作次数:</span>
+                            <strong>{{ user_stats.operation_count if user_stats else 0 }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="col-md-9">
+                <div class="tab-content">
+                    <!-- 基本信息标签页 -->
+                    <div class="tab-pane fade show active" id="profile">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">基本信息</h5>
+                                <button class="btn btn-sm btn-outline-primary" onclick="enableEdit()">
+                                    <i class="fas fa-edit me-1"></i>编辑
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('update_profile') }}">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">用户名</label>
+                                            <input type="text" class="form-control" value="{{ current_user.username }}" readonly>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">邮箱地址</label>
+                                            <input type="email" class="form-control" name="email" 
+                                                   value="{{ current_user.email or '' }}" id="email" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">真实姓名</label>
+                                            <input type="text" class="form-control" name="full_name" 
+                                                   value="{{ current_user.full_name or '' }}" id="full_name" readonly>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">部门</label>
+                                            <select class="form-select" name="department" id="department" disabled>
+                                                <option value="">请选择部门</option>
+                                                <option value="实验室" {% if current_user.department == '实验室' %}selected{% endif %}>实验室</option>
+                                                <option value="质量管理" {% if current_user.department == '质量管理' %}selected{% endif %}>质量管理</option>
+                                                <option value="研发部" {% if current_user.department == '研发部' %}selected{% endif %}>研发部</option>
+                                                <option value="生产部" {% if current_user.department == '生产部' %}selected{% endif %}>生产部</option>
+                                                <option value="采购部" {% if current_user.department == '采购部' %}selected{% endif %}>采购部</option>
+                                                <option value="仓储部" {% if current_user.department == '仓储部' %}selected{% endif %}>仓储部</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">职位</label>
+                                        <input type="text" class="form-control" name="position" 
+                                               value="{{ current_user.position or '' }}" id="position" readonly>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">个人简介</label>
+                                        <textarea class="form-control" name="bio" rows="3" 
+                                                  id="bio" readonly>{{ current_user.bio or '' }}</textarea>
+                                    </div>
+
+                                    <div class="d-none" id="edit-buttons">
+                                        <button type="submit" class="btn btn-primary">保存更改</button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">取消</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 安全设置标签页 -->
+                    <div class="tab-pane fade" id="security">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">修改密码</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="{{ url_for('change_password') }}">
+                                    <div class="mb-3">
+                                        <label class="form-label">当前密码</label>
+                                        <input type="password" class="form-control" name="current_password" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">新密码</label>
+                                        <input type="password" class="form-control" name="new_password" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">确认新密码</label>
+                                        <input type="password" class="form-control" name="confirm_password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">修改密码</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作记录标签页 -->
+                    <div class="tab-pane fade" id="activity">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">最近操作记录</h5>
+                                <a href="#" class="btn btn-sm btn-outline-primary">查看全部</a>
+                            </div>
+                            <div class="card-body">
+                                {% if activities %}
+                                    <div class="list-group">
+                                        {% for activity in activities %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">{{ activity.action }}</h6>
+                                                    <small>{{ activity.timestamp.strftime('%m-%d %H:%M') }}</small>
+                                                </div>
+                                                <p class="mb-1">{{ activity.description }}</p>
+                                                <small class="text-muted">IP: {{ activity.ip_address }}</small>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted text-center">暂无操作记录</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function enableEdit() {
+            document.getElementById('email').readOnly = false;
+            document.getElementById('full_name').readOnly = false;
+            document.getElementById('department').disabled = false;
+            document.getElementById('position').readOnly = false;
+            document.getElementById('bio').readOnly = false;
+            document.getElementById('edit-buttons').classList.remove('d-none');
+        }
+
+        function cancelEdit() {
+            document.getElementById('email').readOnly = true;
+            document.getElementById('full_name').readOnly = true;
+            document.getElementById('department').disabled = true;
+            document.getElementById('position').readOnly = true;
+            document.getElementById('bio').readOnly = true;
+            document.getElementById('edit-buttons').classList.add('d-none');
+            // 这里可以添加重置表单值的逻辑
+        }
+
+        // 标签页切换
+        document.addEventListener('DOMContentLoaded', function() {
+            var triggerTabList = [].slice.call(document.querySelectorAll('.nav-pills a'))
+            triggerTabList.forEach(function (triggerEl) {
+                var tabTrigger = new bootstrap.Tab(triggerEl)
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault()
+                    tabTrigger.show()
+                })
+            })
+        });
+    </script>
+</body>
+</html>

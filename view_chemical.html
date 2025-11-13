@@ -1,0 +1,292 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>化学品详情 - 化学品管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .detail-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .detail-header {
+            background: linear-gradient(135deg, #4361ee, #3f37c9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .detail-section {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .detail-value {
+            color: #212529;
+        }
+        .attachment-badge {
+            display: inline-block;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="detail-card">
+            <div class="detail-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-info-circle me-2"></i>化学品详情</h3>
+                    <a href="{{ url_for('index') }}" class="btn btn-light">
+                        <i class="bi bi-arrow-left me-1"></i> 返回
+                    </a>
+                </div>
+            </div>
+
+            <!-- 基本信息 -->
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-box-seam me-2"></i>基本信息</h5>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">商品代码</div>
+                        <div class="detail-value">{{ chemical.product_code }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="detail-label">化学品名称</div>
+                        <div class="detail-value">{{ chemical.name }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">CAS编号</div>
+                        <div class="detail-value">{{ chemical.cas_number or '-' }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">类别</div>
+                        <div class="detail-value">{{ chemical.category }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">规格</div>
+                        <div class="detail-value">{{ chemical.specification }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">浓度</div>
+                        <div class="detail-value">{{ chemical.concentration or '-' }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">单位</div>
+                        <div class="detail-value">{{ chemical.unit or '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 库存信息 -->
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-clipboard-data me-2"></i>库存信息</h5>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">操作类型</div>
+                        <div class="detail-value">{{ chemical.action }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">操作数量</div>
+                        <div class="detail-value">{{ chemical.quantity }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">此批总库存</div>
+                        <div class="detail-value">{{ chemical.batch_total_stock }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">总库存</div>
+                        <div class="detail-value">{{ chemical.total_stock }}</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">安全库存</div>
+                        <div class="detail-value">{{ chemical.safety_stock }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">状态</div>
+                        <span class="badge 
+                            {% if chemical.status == '正常' %}bg-success
+                            {% elif chemical.status == '待检' %}bg-warning
+                            {% else %}bg-danger{% endif %}">
+                            {{ chemical.status }}
+                        </span>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">价格</div>
+                        <div class="detail-value">¥{{ chemical.price }}</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="detail-label">供应商</div>
+                        <div class="detail-value">{{ chemical.supplier or '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生产信息 -->
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-gear me-2"></i>生产信息</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">生产商</div>
+                        <div class="detail-value">{{ chemical.manufacturer }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">批次号</div>
+                        <div class="detail-value">{{ chemical.batch_number }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">操作日期</div>
+                        <div class="detail-value">
+                            {% if chemical.operation_date %}
+                                {{ chemical.operation_date.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">收支日期</div>
+                        <div class="detail-value">
+                            {% if chemical.production_date %}
+                                {{ chemical.production_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">过期日期</div>
+                        <div class="detail-value">
+                            {% if chemical.expiration_date %}
+                                {{ chemical.expiration_date.strftime('%Y-%m-%d') }}
+                                <span class="badge bg-{% if chemical.days_remaining <= 30 %}warning{% else %}success{% endif %}">
+                                    {{ chemical.days_remaining }}天
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">耗材类别</div>
+                        <div class="detail-value">{{ chemical.consumable_category or '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 位置信息 -->
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-geo-alt me-2"></i>位置信息</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">存储位置</div>
+                        <div class="detail-value">{{ chemical.location }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">仓库位置</div>
+                        <div class="detail-value">{{ chemical.warehouse_location or '-' }}</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="detail-label">监管类别</div>
+                        <div class="detail-value">{{ chemical.regulatory_category or '-' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图片 -->
+            {% if chemical.image %}
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-image me-2"></i>化学品图片</h5>
+                <div class="text-center">
+                    <img src="{{ url_for('view_image', id=chemical.id) }}" 
+                         alt="化学品图片" 
+                         class="img-fluid rounded"
+                         style="max-height: 300px;">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 附件 -->
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-paperclip me-2"></i>相关附件</h5>
+                <div>
+                    {% if chemical.attachment %}
+                    <a href="{{ url_for('download_attachment', id=chemical.id, type='attachment') }}" 
+                       class="badge bg-primary text-white p-2 attachment-badge">
+                       <i class="bi bi-download me-1"></i> 普通附件
+                    </a>
+                    {% endif %}
+                    
+                    {% if chemical.delivery_order_attachment %}
+                    <a href="{{ url_for('download_attachment', id=chemical.id, type='delivery_order') }}" 
+                       class="badge bg-success text-white p-2 attachment-badge">
+                       <i class="bi bi-download me-1"></i> 送货单
+                    </a>
+                    {% endif %}
+                    
+                    {% if chemical.invoice_attachment %}
+                    <a href="{{ url_for('download_attachment', id=chemical.id, type='invoice') }}" 
+                       class="badge bg-info text-white p-2 attachment-badge">
+                       <i class="bi bi-download me-1"></i> 发票
+                    </a>
+                    {% endif %}
+                    
+                    {% if chemical.msds_attachment %}
+                    <a href="{{ url_for('download_attachment', id=chemical.id, type='msds') }}" 
+                       class="badge bg-danger text-white p-2 attachment-badge">
+                       <i class="bi bi-download me-1"></i> MSDS文件
+                    </a>
+                    {% endif %}
+                    
+                    {% if not chemical.attachment and not chemical.delivery_order_attachment and 
+                          not chemical.invoice_attachment and not chemical.msds_attachment %}
+                    <div class="text-muted">无相关附件</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 备注 -->
+            {% if chemical.notes %}
+            <div class="detail-section">
+                <h5 class="mb-3 text-primary"><i class="bi bi-card-text me-2"></i>备注</h5>
+                <div class="border rounded p-3 bg-light">
+                    {{ chemical.notes }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 操作按钮 -->
+            <div class="d-flex justify-content-end mt-4">
+                <a href="{{ url_for('edit_chemical', id=chemical.id) }}" class="btn btn-primary me-2">
+                    <i class="bi bi-pencil me-1"></i> 编辑
+                </a>
+                <form action="{{ url_for('delete_chemical', id=chemical.id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('确定删除吗？')">
+                        <i class="bi bi-trash me-1"></i> 删除
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
