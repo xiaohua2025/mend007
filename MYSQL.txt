@@ -1,0 +1,72 @@
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS `user` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `username` VARCHAR(80) UNIQUE NOT NULL,
+    `email` VARCHAR(120) UNIQUE NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `role` VARCHAR(20) DEFAULT 'user',
+    `is_active` BOOLEAN DEFAULT TRUE,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `last_login` DATETIME NULL,
+    `department` VARCHAR(100) NULL,
+    `phone` VARCHAR(20) NULL,
+    `real_name` VARCHAR(100) NULL,
+    `employee_id` VARCHAR(50) NULL,
+    `permissions` JSON NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 创建用户操作日志表
+CREATE TABLE IF NOT EXISTS `user_audit_log` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT,
+    `action` VARCHAR(100) NOT NULL,
+    `resource_type` VARCHAR(50) NOT NULL,
+    `resource_id` INT NULL,
+    `details` JSON NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` TEXT NULL,
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 创建用户会话表
+CREATE TABLE IF NOT EXISTS `user_session` (
+    `id` INT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `session_token` VARCHAR(255) UNIQUE NOT NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` TEXT NULL,
+    `login_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `last_activity` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `expires_at` DATETIME NOT NULL,
+    `is_active` BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 创建索引以提高查询性能
+CREATE INDEX idx_user_username ON `user`(`username`);
+CREATE INDEX idx_user_email ON `user`(`email`);
+CREATE INDEX idx_user_role ON `user`(`role`);
+CREATE INDEX idx_user_created_at ON `user`(`created_at`);
+CREATE INDEX idx_audit_log_user_id ON `user_audit_log`(`user_id`);
+CREATE INDEX idx_audit_log_created_at ON `user_audit_log`(`created_at`);
+CREATE INDEX idx_session_token ON `user_session`(`session_token`);
+CREATE INDEX idx_session_user_id ON `user_session`(`user_id`);
+
+-- 插入默认管理员用户 (密码: admin123)
+INSERT INTO `user` (`username`, `email`, `password_hash`, `role`, `real_name`, `department`, `employee_id`, `permissions`) 
+VALUES 
+('admin', 'admin@company.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhf8/3oXg9HpN9LZc8JQKq', 'admin', '系统管理员', 'IT部门', 'ADM001', '["*"]'),
+('user1', 'user1@company.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhf8/3oXg9HpN9LZc8JQKq', 'user', '张三', '实验室', 'EMP001', '["chemical:read", "chemical:create"]'),
+('user2', 'user2@company.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhf8/3oXg9HpN9LZc8JQKq', 'user', '李四', '仓库', 'EMP002', '["chemical:read", "equipment:read"]');
+
+-- 创建视图用于用户统计
+CREATE VIEW user_stats AS
+SELECT 
+    COUNT(*) as total_users,
+    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users,
+    SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive_users,
+    SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) as admin_users,
+    SUM(CASE WHEN role = 'user' THEN 1 ELSE 0 END) as regular_users,
+    AVG(TIMESTAMPDIFF(DAY, created_at, NOW())) as avg_account_age_days
+FROM `user`;  
